@@ -7,6 +7,7 @@ from typing import Optional
 import httpx
 from fastapi import HTTPException
 
+from app.config import settings
 from app.utils import mdv2_escape
 
 
@@ -63,3 +64,25 @@ async def get_chat_member(token: str, chat_id: str, user_id: str):
     async with httpx.AsyncClient(timeout=10) as client:
         r = await client.get(url, params={"chat_id": chat_id, "user_id": user_id})
     return r
+
+
+async def set_telegram_webhook(
+    token: str, bot_id: str, base_url: Optional[str] = None
+) -> dict:
+    """
+    Set Telegram webhook to {base_url}/tg/{bot_id}/{token}
+    """
+    base = (base_url or settings.public_base_url).rstrip("/")
+    target = f"{base}/tg/{bot_id}/{token}"
+    url_api = f"https://api.telegram.org/bot{token}/setWebhook"
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(url_api, data={"url": target})
+    return r.json()
+
+
+async def get_webhook_info(token: str) -> dict:
+    """Get webhook info"""
+    url_api = f"https://api.telegram.org/bot{token}/getWebhookInfo"
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(url_api)
+    return r.json()

@@ -19,6 +19,7 @@ class Settings:
     admin_ids: frozenset[str] = frozenset(
         s.strip() for s in os.getenv("ADMIN_USER_IDS", "").split(",") if s.strip()
     )
+    admin_http_key: str = os.getenv("ADMIN_HTTP_KEY", "supersecret-admin-key")
 
 
 settings = Settings()
