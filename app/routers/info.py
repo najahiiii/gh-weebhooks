@@ -21,6 +21,7 @@ Endpoints
 - GET  /            : Health check
 - GET  /help        : Ringkasan perintah & endpoint
 - GET  /setup       : Panduan setup end-to-end
+- GET  /stats       : Statistik ringkas (butuh admin key bila dikonfigurasi)
 - POST /tg/{{bot_id}}/{{token}} : Telegram webhook (per bot user)
 - POST /wh/{{hook_id}}          : GitHub webhook (per subscription)
 
