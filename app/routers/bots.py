@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import get_db
 from app.models import Bot
-from app.routers.tg import ensure_user
+from app.services.users import ensure_user_by_tg_id as ensure_id
 from app.services.telegram import set_telegram_webhook, get_webhook_info
 from app.utils import parse_bot_id_from_token
 
@@ -84,7 +84,7 @@ async def add_bot(
         )
 
     # pastikan owner ada
-    owner = ensure_user(session, owner_tg_id)
+    owner = ensure_id(session, owner_tg_id)
 
     # create/update bot
     bot = session.query(Bot).filter_by(bot_id=bid).first()
