@@ -86,6 +86,10 @@ async def add_bot(
     # pastikan owner ada
     owner = ensure_id(session, owner_tg_id)
 
+    if not owner.is_admin:
+        owner.is_admin = True
+        session.commit()
+
     # create/update bot
     bot = session.query(Bot).filter_by(bot_id=bid).first()
     if not bot:

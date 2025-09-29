@@ -83,15 +83,36 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
         if not text or not text.startswith("/"):
             return "ok"
         user = ensure_user(db, from_user)
-
         b = db.query(Bot).filter_by(bot_id=bot_id).first()
+
+        is_owner = bool(b and b.owner_user_id == user.id)
+        is_admin = bool(user.is_admin)
+
+        if b and (b.token != token) and not (is_owner or is_admin):
+            return "ok"
+
         if not b:
+            if not (is_owner or is_admin):
+                pass
             b = Bot(owner_user_id=user.id, bot_id=bot_id, token=token)
             db.add(b)
             db.commit()
         elif b.token != token:
-            b.token = token
-            db.commit()
+            if is_owner or is_admin:
+                b.token = token
+                db.commit()
+                
+        allowed_cmds = {"/start", "/help"}
+        cmd, *rest = text.split(maxsplit=1)
+        arg = rest[0] if rest else ""
+
+        if (cmd not in allowed_cmds) and not (is_owner or is_admin):
+            await send_message(
+                b.token, chat_id_current,
+                "❌ Kamu bukan owner bot ini. Minta owner menjadikanmu admin atau gunakan bot milikmu sendiri.",
+                topic_id=topic_id_from_msg, html=True
+            )
+            return "ok"
 
         async def reply(s: str):
             await send_message(
