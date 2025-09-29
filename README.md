@@ -62,7 +62,7 @@ pip install -r requirements.txt
 cp .env.example .env  # or create manually, see below
 
 # 5) Run
-uvicorn app:app --host 0.0.0.0 --port 8000 --env-file .env
+uvicorn app.app:app --host 127.0.0.1 --port PORTS --workers 2 --proxy-headers --forwarded-allow-ips="*"
 ```
 
 ---
