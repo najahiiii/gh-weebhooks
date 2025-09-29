@@ -67,17 +67,27 @@ async def get_chat_member(token: str, chat_id: str, user_id: str):
 
 
 async def set_telegram_webhook(
-    token: str, bot_id: str, base_url: Optional[str] = None
+    token: str,
+    bot_id: str,
+    base_url: Optional[str] = None,
+    *,
+    drop_pending_updates: bool = True,
 ) -> dict:
     """
-    Set Telegram webhook to {base_url}/tg/{bot_id}/{token}
+    Set Telegram webhook ke {base}/tg/{bot_id}/{token}
     """
     base = (base_url or settings.public_base_url).rstrip("/")
     target = f"{base}/tg/{bot_id}/{token}"
+
+    payload = {
+        "url": target,
+        "drop_pending_updates": drop_pending_updates,
+    }
+
     url_api = f"https://api.telegram.org/bot{token}/setWebhook"
     async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.post(url_api, data={"url": target})
-    return r.json()
+        r = await client.post(url_api, json=payload)
+        return r.json()
 
 
 async def get_webhook_info(token: str) -> dict:
