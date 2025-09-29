@@ -14,7 +14,7 @@ def summarize_event(event: str, payload: dict) -> str:
         str: yet return from gitboob weebhooks
     """
     if event == "ping":
-        return "*Webhook terhubung* \\- pong ✅"
+        return "*Webhook terhubung* — pong ✅"
 
     if event == "push":
         repo = payload.get("repository", {}).get("full_name", "?")

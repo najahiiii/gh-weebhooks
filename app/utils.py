@@ -28,15 +28,6 @@ CMD_HELP = """Perintah:
 """
 
 
-def mdv2_escape(s: str) -> str:
-    """
-    Escape special characters for Telegram MarkdownV2 to prevent formatting issues.
-    """
-    for ch in r"_*[]()~`>#+-=|{}.!":
-        s = s.replace(ch, f"\\{ch}")
-    return s
-
-
 def parse_bot_id_from_token(token: str) -> str | None:
     """
     Extract the numeric bot ID from a Telegram bot token.

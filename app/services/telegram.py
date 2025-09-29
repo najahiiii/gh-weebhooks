@@ -8,14 +8,13 @@ import httpx
 from fastapi import HTTPException
 
 from app.config import settings
-from app.utils import mdv2_escape
 
 
 async def send_message(
     token: str,
     chat_id: str,
     text: str,
-    markdown_v2: bool = True,
+    markdown: bool = True,
     topic_id: Optional[int] = None,
 ):
     """
@@ -28,19 +27,20 @@ async def send_message(
     chat_id : str
         Target chat ID (PM/group/channel).
     text : str
-        Message body (will be MarkdownV2-escaped by default).
-    markdown_v2 : bool
-        If True, send with parse_mode=MarkdownV2.
+        Message body.
+    markdown : bool
+        If True, send with parse_mode=markdown.
     topic_id : int | None
         If provided, included as `message_thread_id` for Group Topics.
     """
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
-        "text": mdv2_escape(text) if markdown_v2 else text,
-        "parse_mode": "MarkdownV2" if markdown_v2 else None,
+        "text": text,
         "disable_web_page_preview": True,
     }
+    if markdown:
+        payload["parse_mode"] = "markdown"
     if topic_id:
         payload["message_thread_id"] = topic_id
     async with httpx.AsyncClient(timeout=15) as client:

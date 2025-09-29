@@ -52,5 +52,5 @@ async def github_webhook(
         raise HTTPException(500, "Bot atau destination tidak tersedia")
 
     text = summarize_event(event, payload)
-    await send_message(bot.token, dest.chat_id, text, topic_id=dest.topic_id)
+    await send_message(bot.token, dest.chat_id, text, topic_id=dest.topic_id, markdown=True)
     return "ok"
