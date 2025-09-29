@@ -14,7 +14,37 @@ def summarize_event(event: str, payload: dict) -> str:
         str: yet return from gitboob weebhooks
     """
     if event == "ping":
-        return "*Webhook terhubung* — pong ✅"
+        repo = (payload.get("repository") or {}).get("full_name", "?")
+        zen = payload.get("zen") or ""
+        hook = payload.get("hook") or {}
+        hook_id = payload.get("hook_id") or hook.get("id")
+        cfg = hook.get("config") or {}
+        events = hook.get("events") or []
+        last_resp = (hook.get("last_response") or {}).get("status") or "unknown"
+        created_at = hook.get("created_at") or ""
+        updated_at = hook.get("updated_at") or ""
+        payload_url = cfg.get("url") or ""
+        test_url = hook.get("test_url") or ""
+        ping_url = hook.get("ping_url") or ""
+
+        lines = [
+            "GitHub webhook ping received",
+            f"repo         : {repo}",
+            f"hook_id      : {hook_id}",
+            f"events       : {', '.join(events) if events else '*'}",
+            f"payload_url  : {payload_url}",
+            f"last_response: {last_resp}",
+            f"created_at   : {created_at}",
+            f"updated_at   : {updated_at}",
+        ]
+        if test_url:
+            lines.append(f"test_url     : {test_url}")
+        if ping_url:
+            lines.append(f"ping_url     : {ping_url}")
+        if zen:
+            lines.append(f"zen          : {zen}")
+
+        return "\n".join(lines)
 
     if event == "push":
         repo = payload.get("repository", {}).get("full_name", "?")
