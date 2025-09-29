@@ -38,11 +38,12 @@ import hashlib
 import hmac
 import os
 import uuid
+from textwrap import dedent
 from typing import Optional
 from zoneinfo import ZoneInfo
 
-from dotenv import load_dotenv
 import httpx
+from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
@@ -883,6 +884,166 @@ async def github_webhook(
     return PlainTextResponse("ok")
 
 
+# -----------------------------------------------------------------------------
+# HTTP Help & Setup Endpoints
+# -----------------------------------------------------------------------------
+
+HTTP_HELP_TEXT = dedent(
+    f"""
+GitHub → Telegram Notifier (HTTP Help)
+
+Endpoints
+---------
+- GET  /            : Health check
+- GET  /help        : Ringkasan perintah & endpoint
+- GET  /setup       : Panduan setup end-to-end
+- POST /tg/{{bot_id}}/{{token}} : Telegram webhook (per bot user)
+- POST /wh/{{hook_id}}          : GitHub webhook (per subscription)
+
+Perintah Telegram
+-----------------
+{CMD_HELP}
+
+Catatan
+-------
+- PUBLIC_BASE_URL: {PUBLIC_BASE_URL}
+- Semua waktu disimpan dalam WIB (Asia/Jakarta).
+"""
+).strip()
+
+
+def _render_setup_markdown() -> str:
+    base = PUBLIC_BASE_URL.rstrip("/")
+    return dedent(
+        f"""
+    Setup Guide (Server & Webhook)
+
+    1) Persiapan ENV (.env)
+    -----------------------
+    Buat file `.env` di root project:
+    ```
+    DB_URL=sqlite:///./github_tg.sqlite3
+    PUBLIC_BASE_URL={base}
+    ADMIN_USER_IDS=123456789,987654321
+    ```
+
+    2) Buat venv & install dependencies
+    -----------------------------------
+    ```
+    python -m venv .venv
+    source .venv/bin/activate
+    pip install -U pip
+    pip install fastapi uvicorn httpx sqlalchemy pydantic python-dotenv
+    ```
+
+    3) Jalankan aplikasi (contoh)
+    -----------------------------
+    ```
+    uvicorn app:app --host 127.0.0.1 --port 8000 --workers=2 --proxy-headers --forwarded-allow-ips="*"
+    ```
+
+    4) Set webhook Telegram (tiap bot user)
+    ---------------------------------------
+    URL webhook Telegram:
+    ```
+    {base}/tg/{{bot_id}}/{{token}}
+    ```
+    Cara cepat (contoh curl):
+    ```
+    curl -s "https://api.telegram.org/bot{{token}}/setWebhook" \
+      -d "url={base}/tg/{{bot_id}}/{{token}}"
+    ```
+    Setelah itu, di chat Telegram dengan bot:
+    - /start
+    - /adddest here
+    - /subscribe owner/repo push,pull_request
+
+    5) Buat webhook GitHub (per repo)
+    ---------------------------------
+    Setelah menjalankan /subscribe, bot akan mengirim konfigurasi seperti:
+    - Payload URL: `{base}/wh/{{hook_id}}`
+    - Content type: `application/json`
+    - Secret: (acak per subscription)
+    - Events: pilih sesuai kebutuhan (mis. Push, Pull Request)
+
+    6) Reverse proxy (ringkas)
+    --------------------------
+    Nginx/OpenResty blok minimal:
+    ```
+    server {{
+        listen 443 ssl http2;
+        server_name yourdomain.example;
+
+        ssl_certificate     /etc/letsencrypt/live/yourdomain.example/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/yourdomain.example/privkey.pem;
+
+        client_max_body_size 5m;
+
+        # Telegram webhook - matikan access_log agar token tidak terekam
+        location ~ ^/tg/\\d+/.+ {{
+            access_log off;
+            proxy_pass http://127.0.0.1:8000;
+            proxy_set_header Host              $host;
+            proxy_set_header X-Real-IP         $remote_addr;
+            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            limit_except POST {{ deny all; }}
+        }}
+
+        # GitHub webhook
+        location /wh/ {{
+            proxy_pass http://127.0.0.1:8000;
+            proxy_set_header Host              $host;
+            proxy_set_header X-Real-IP         $remote_addr;
+            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            limit_except POST {{ deny all; }}
+        }}
+
+        # Health check
+        location / {{
+            proxy_pass http://127.0.0.1:8000;
+            proxy_set_header Host              $host;
+            proxy_set_header X-Real-IP         $remote_addr;
+            proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }}
+    }}
+    ```
+
+    7) Tips Keamanan
+    ----------------
+    - Jangan log lengkap URL /tg/... karena mengandung token bot.
+    - Simpan DB yang berisi token dengan aman (izin file/folder dibatasi).
+    - Gunakan HTTPS untuk seluruh traffic publik.
+
+    Referensi cepat
+    ---------------
+    - Health check: `GET {base}/`
+    - Help HTTP:    `GET {base}/help`
+    - Setup HTTP:   `GET {base}/setup`
+    """
+    ).strip()
+
+
+@app.get("/help", response_class=PlainTextResponse)
+def http_help():
+    """
+    HTTP help endpoint.
+    Returns a plaintext cheat sheet of endpoints and Telegram commands.
+    """
+    return HTTP_HELP_TEXT
+
+
+@app.get("/setup", response_class=PlainTextResponse)
+def http_setup():
+    """
+    HTTP setup endpoint.
+    Returns a plaintext end-to-end setup guide.
+    """
+    return _render_setup_markdown()
+
+
 # =============================================================================
 # Root
 # =============================================================================
@@ -891,4 +1052,4 @@ def root():
     """
     Simple liveness endpoint.
     """
-    return "OK – GitHub→Telegram multi-user (topics & channels) is running"
+    return "Hello World!"
