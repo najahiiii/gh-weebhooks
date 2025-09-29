@@ -1,18 +1,34 @@
-"""Yet another gh services"""
+# "Yet another gh services"
 
 from __future__ import annotations
 
+from html import escape as _esc
+
+
+def _esc_html(value) -> str:
+    return _esc(str(value or ""), quote=True)
+
+
+def _link(url: str | None, text: str | None = None) -> str:
+    if not url:
+        return ""
+    t = text or url
+    return f'<a href="{_esc_html(url)}">{_esc_html(t)}</a>'
+
 
 def summarize_event(event: str, payload: dict) -> str:
-    """summmmm
+    """
+    Summarize GitHub webhook events as HTML (safe for Telegram parse_mode='HTML').
 
     Args:
-        event (str): gitboob weebhooks events
-        payload (dict): payload?
+        event (str): GitHub webhook event name.
+        payload (dict): Webhook JSON payload.
 
     Returns:
-        str: yet return from gitboob weebhooks
+        str: Formatted HTML summary.
     """
+    event = (event or "").lower()
+
     if event == "ping":
         repo = (payload.get("repository") or {}).get("full_name", "?")
         zen = payload.get("zen") or ""
@@ -28,78 +44,101 @@ def summarize_event(event: str, payload: dict) -> str:
         ping_url = hook.get("ping_url") or ""
 
         lines = [
-            "GitHub webhook ping received",
-            f"repo         : {repo}",
-            f"hook_id      : {hook_id}",
-            f"events       : {', '.join(events) if events else '*'}",
-            f"payload_url  : {payload_url}",
-            f"last_response: {last_resp}",
-            f"created_at   : {created_at}",
-            f"updated_at   : {updated_at}",
+            "<b>GitHub webhook ping received</b>",
+            f"repo: <code>{_esc_html(repo)}</code>",
+            f"hook_id: <code>{_esc_html(hook_id)}</code>",
+            (
+                "events: <code>*</code>"
+                if not events
+                else "events: "
+                + ", ".join(f"<code>{_esc_html(e)}</code>" for e in events)
+            ),
+            (
+                "payload_url: "
+                + (_link(payload_url) if payload_url else "<code>-</code>")
+            ),
+            f"last_response: <code>{_esc_html(last_resp)}</code>",
+            f"created_at: <code>{_esc_html(created_at)}</code>",
+            f"updated_at: <code>{_esc_html(updated_at)}</code>",
         ]
         if test_url:
-            lines.append(f"test_url     : {test_url}")
+            lines.append("test_url: " + _link(test_url))
         if ping_url:
-            lines.append(f"ping_url     : {ping_url}")
+            lines.append("ping_url: " + _link(ping_url))
         if zen:
-            lines.append(f"zen          : {zen}")
+            lines.append(f"zen: {_esc_html(zen)}")
 
         return "\n".join(lines)
 
     if event == "push":
-        repo = payload.get("repository", {}).get("full_name", "?")
+        repo = (payload.get("repository") or {}).get("full_name", "?")
         branch = (payload.get("ref") or "refs/heads/?").split("/")[-1]
-        pusher = payload.get("pusher", {}).get("name") or payload.get("sender", {}).get(
-            "login", "?"
-        )
-        commits = payload.get("commits", []) or []
+        pusher = (payload.get("pusher") or {}).get("name") or (
+            payload.get("sender") or {}
+        ).get("login", "?")
+        commits = payload.get("commits") or []
+
         lines = [
-            f"*[{repo}]* push ke *{branch}* oleh *{pusher}* ({len(commits)} commit)"
+            f"<b>[{_esc_html(repo)}]</b> push ke <b>{_esc_html(branch)}</b> oleh "
+            f"<b>{_esc_html(pusher)}</b> ({len(commits)} commit)"
         ]
+
         for c in commits[:5]:
             sha = (c.get("id") or "")[:7]
             msg = (c.get("message") or "").split("\n")[0][:120]
             url = c.get("url") or ""
-            lines.append(f"`{sha}` {msg}\n{url}")
+            lines.append(f"<code>{_esc_html(sha)}</code> {_esc_html(msg)}")
+            if url:
+                lines.append(_esc_html(url))
         if len(commits) > 5:
-            lines.append(f"_+{len(commits)-5} commit lainnya_")
-        return "\n\n".join(lines)
+            lines.append(f"<i>+{len(commits) - 5} commit lainnya</i>")
+
+        return "\n".join(lines)
 
     if event == "pull_request":
-        action = payload.get("action")
-        repo = payload.get("repository", {}).get("full_name", "?")
-        pr = payload.get("pull_request", {}) or {}
-        num = pr.get("number")
-        title = pr.get("title", "")
+        action = payload.get("action") or ""
+        repo = (payload.get("repository") or {}).get("full_name", "?")
+        pr = payload.get("pull_request") or {}
+        num = payload.get("number") or pr.get("number") or "?"
+        title = pr.get("title") or ""
         user = (pr.get("user") or {}).get("login", "?")
-        url = pr.get("html_url", "")
-        return f"*PR* {repo} \\#{num} *{action}* oleh *{user}*\n*{title}*\n{url}"
+        url = pr.get("html_url") or ""
+        head = f"<b>PR</b> {_esc_html(repo)} #{_esc_html(num)} <b>{_esc_html(action)}</b> oleh <b>{_esc_html(user)}</b>"
+        body = f"<b>{_esc_html(title)}</b>"
+        link = _esc_html(url)
+        return f"{head}\n{body}\n{link}"
 
     if event == "issues":
-        action = payload.get("action")
-        repo = payload.get("repository", {}).get("full_name", "?")
-        issue = payload.get("issue", {}) or {}
-        num = issue.get("number")
-        title = issue.get("title", "")
+        action = payload.get("action") or ""
+        repo = (payload.get("repository") or {}).get("full_name", "?")
+        issue = payload.get("issue") or {}
+        num = issue.get("number") or payload.get("number") or "?"
+        title = issue.get("title") or ""
         user = (issue.get("user") or {}).get("login", "?")
-        url = issue.get("html_url", "")
-        return f"*Issue* {repo} \\#{num} *{action}* oleh *{user}*\n*{title}*\n{url}"
+        url = issue.get("html_url") or ""
+        head = f"<b>Issue</b> {_esc_html(repo)} #{_esc_html(num)} <b>{_esc_html(action)}</b> oleh <b>{_esc_html(user)}</b>"
+        body = f"<b>{_esc_html(title)}</b>"
+        link = _esc_html(url)
+        return f"{head}\n{body}\n{link}"
 
     if event == "release":
-        action = payload.get("action")
-        repo = payload.get("repository", {}).get("full_name", "?")
-        rel = payload.get("release", {}) or {}
-        tag = rel.get("tag_name", "")
-        url = rel.get("html_url", "")
-        return f"*Release* {repo} *{action}*: *{tag}*\n{url}"
+        action = payload.get("action") or ""
+        repo = (payload.get("repository") or {}).get("full_name", "?")
+        rel = payload.get("release") or {}
+        tag = rel.get("tag_name") or ""
+        url = rel.get("html_url") or ""
+        return f"<b>Release</b> {_esc_html(repo)} <b>{_esc_html(action)}</b>: <b>{_esc_html(tag)}</b>\n{_esc_html(url)}"
 
     if event == "workflow_run":
-        repo = payload.get("repository", {}).get("full_name", "?")
-        wr = payload.get("workflow_run", {}) or {}
-        name = wr.get("name", "")
-        status = wr.get("status", "")
+        repo = (payload.get("repository") or {}).get("full_name", "?")
+        wr = payload.get("workflow_run") or {}
+        name = wr.get("name") or ""
+        status = wr.get("status") or ""
         conclusion = wr.get("conclusion") or ""
-        url = wr.get("html_url", "")
-        return f"*CI* {repo}: *{name}* — *{status}* {conclusion}\n{url}"
+        url = wr.get("html_url") or ""
+        return (
+            f"<b>CI</b> {_esc_html(repo)}: <b>{_esc_html(name)}</b> — "
+            f"<b>{_esc_html(status)}</b> {_esc_html(conclusion)}\n{_esc_html(url)}"
+        )
 
-    return f"*Event*: {event} diterima \\(diringkas\\)"
+    return f"<b>Event</b>: {_esc_html(event)} diterima (diringkas)"

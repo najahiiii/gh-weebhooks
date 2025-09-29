@@ -95,7 +95,7 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
 
         async def reply(s: str):
             await send_message(
-                b.token, chat_id_current, s, topic_id=topic_id_from_msg, markdown=True
+                b.token, chat_id_current, s, topic_id=topic_id_from_msg, html=True
             )
 
         if not text or not text.startswith("/"):
@@ -328,7 +328,7 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     dest.chat_id,
                     "Test ke destination default.",
                     topic_id=dest.topic_id,
-                    markdown=True,
+                    html=True,
                 )
                 await reply("Dikirim.")
 

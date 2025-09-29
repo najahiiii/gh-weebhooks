@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+import re
 from typing import Optional
 
 import httpx
@@ -10,43 +12,57 @@ from fastapi import HTTPException
 from app.config import settings
 
 
+def _normalize_newlines(s: str) -> str:
+    return s.replace("\r\n", "\n").replace("\r", "\n")
+
+
+_code_inline_re = re.compile(r"`([^`\n]+)`")  # inline code: `...`
+_bold_inline_re = re.compile(r"\*([^*\n]+)\*")  # bold: *...*
+
+
+def _markdown_min_to_html(text: str) -> str:
+    s = _normalize_newlines(text)
+    s = html.escape(s, quote=False)
+    s = _bold_inline_re.sub(r"<b>\1</b>", s)
+    s = _code_inline_re.sub(r"<code>\1</code>", s)
+
+    return s
+
+
 async def send_message(
     token: str,
     chat_id: str,
     text: str,
-    markdown: bool = True,
+    html: bool = True,
     topic_id: Optional[int] = None,
 ):
     """
-    Send a Telegram message using a specific bot token.
-
-    Parameters
-    ----------
-    token : str
-        Telegram bot token to use for sending.
-    chat_id : str
-        Target chat ID (PM/group/channel).
-    text : str
-        Message body.
-    markdown : bool
-        If True, send with parse_mode=markdown.
-    topic_id : int | None
-        If provided, included as `message_thread_id` for Group Topics.
+    Kirim pesan Telegram. Default pakai HTML, dengan konversi ringan dari *bold* dan `code`.
     """
     url = f"https://api.telegram.org/bot{token}/sendMessage"
+
+    if html:
+        rendered = _markdown_min_to_html(text)
+    else:
+        rendered = _normalize_newlines(text)
+
     payload = {
         "chat_id": chat_id,
-        "text": text,
+        "text": rendered,
         "disable_web_page_preview": True,
     }
-    if markdown:
-        payload["parse_mode"] = "markdown"
-    if topic_id:
+    if html:
+        payload["parse_mode"] = "HTML"
+    if topic_id is not None:
         payload["message_thread_id"] = topic_id
+
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.post(url, json=payload)
-        if r.status_code >= 300:
-            raise HTTPException(500, f"Telegram error: {r.status_code} {r.text}")
+
+    if r.status_code >= 300:
+        raise HTTPException(500, f"Telegram error: {r.status_code} {r.text}")
+
+    return r.json()
 
 
 async def get_chat_member(token: str, chat_id: str, user_id: str):
