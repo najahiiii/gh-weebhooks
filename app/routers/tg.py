@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-import uuid
-
-from fastapi import APIRouter
-from fastapi import Request
-from fastapi.responses import PlainTextResponse
-from sqlalchemy.orm import Session
 import json
 import traceback
+import uuid
+from html import escape as _esc_html
+
+from fastapi import APIRouter
+from fastapi.responses import PlainTextResponse
+from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.db import SessionLocal
 from app.models import Bot, Destination, Subscription, User
@@ -18,6 +19,18 @@ from app.services.telegram import get_chat_member, send_message
 from app.utils import CMD_HELP, parse_bot_id_from_token, parse_topic_id
 
 router = APIRouter(prefix="/tg", tags=["telegram"])
+
+
+def _esc(v) -> str:
+    return _esc_html(str(v or ""), quote=True)
+
+
+def _code(v) -> str:
+    return f"<code>{_esc(v)}</code>"
+
+
+def _pre(v) -> str:
+    return f"<pre>{_esc(v)}</pre>"
 
 
 def ensure_user(db: Session, tg_user: dict) -> User:
@@ -44,7 +57,7 @@ def ensure_user(db: Session, tg_user: dict) -> User:
 
 
 @router.post("/{bot_id}/{token}", response_class=PlainTextResponse)
-async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Request):
+async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate):
     """
     Telegram webhook endpoint (multi-bot mode).
 
@@ -101,22 +114,25 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
             if is_owner or is_admin:
                 b.token = token
                 db.commit()
-                
+
         allowed_cmds = {"/start", "/help"}
         cmd, *rest = text.split(maxsplit=1)
         arg = rest[0] if rest else ""
 
         if (cmd not in allowed_cmds) and not (is_owner or is_admin):
             await send_message(
-                b.token, chat_id_current,
+                b.token,
+                chat_id_current,
                 "❌ Kamu bukan owner bot ini. Minta owner menjadikanmu admin atau gunakan bot milikmu sendiri.",
-                topic_id=topic_id_from_msg, html=True
+                topic_id=topic_id_from_msg,
+                auto_split=True,
             )
             return "ok"
 
         async def reply(s: str):
+            # Semua s dianggap sudah HTML
             await send_message(
-                b.token, chat_id_current, s, topic_id=topic_id_from_msg, html=True
+                b.token, chat_id_current, s, topic_id=topic_id_from_msg, auto_split=True
             )
 
         if not text or not text.startswith("/"):
@@ -127,16 +143,17 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
 
         # user commands
         if cmd == "/start":
-            await reply(
-                f"Halo! Kamu *{'admin' if user.is_admin else 'user'}*.\n{CMD_HELP}"
-            )
+            role = "admin" if user.is_admin else "user"
+            await reply(f"Halo! Kamu <b>{_esc(role)}</b>.\n{_pre(CMD_HELP)}")
 
         elif cmd == "/help":
-            await reply(CMD_HELP)
+            await reply(_pre(CMD_HELP))
 
         elif cmd == "/connectbot":
             if not arg:
-                await reply("Format: /connectbot <token_bot_telegram>")
+                await reply(
+                    "Format: <code>/connectbot &lt;token_bot_telegram&gt;</code>"
+                )
             else:
                 bid = parse_bot_id_from_token(arg)
                 if not bid:
@@ -153,26 +170,28 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     await reply(
                         "Bot terhubung ✅\n"
                         "Set webhook Telegram ke:\n"
-                        f"`{settings.public_base_url}/tg/{bid}/{arg}`"
+                        f"{_pre(f'{settings.public_base_url}/tg/{bid}/{arg}')}"
                     )
 
         elif cmd == "/listbot":
             bots = db.query(Bot).filter_by(owner_user_id=user.id).all()
             if not bots:
-                await reply("Belum ada bot. /connectbot <token>")
+                await reply("Belum ada bot. <code>/connectbot &lt;token&gt;</code>")
             else:
                 lines = ["Bot milikmu:"]
                 for bt in bots:
                     lines.append(
-                        f"- id=`{bt.bot_id}` dibuat={bt.created_at.isoformat()}"
+                        f"- id={_code(bt.bot_id)} dibuat={_code(bt.created_at.isoformat())}"
                     )
                 await reply("\n".join(lines))
 
         elif cmd == "/adddest":
             if not arg:
                 await reply(
-                    "Format:\n/adddest <chat_id> [nama]\n/adddest here [nama]\n"
-                    "/adddest <chat_id>:<topic_id> [nama]"
+                    "Format:\n"
+                    "<code>/adddest &lt;chat_id&gt; [nama]</code>\n"
+                    "<code>/adddest here [nama]</code>\n"
+                    "<code>/adddest &lt;chat_id&gt;:&lt;topic_id&gt; [nama]</code>"
                 )
             else:
                 parts = arg.split(maxsplit=1)
@@ -191,8 +210,9 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     db.add(dest)
                     db.commit()
                     await reply(
-                        f"Destination (here) ditambah. id={dest.id} chat_id={dest.chat_id} "
-                        f"topic_id={dest.topic_id or '-'} default={dest.is_default}"
+                        "Destination (here) ditambah. "
+                        f"id={_code(dest.id)} chat_id={_code(dest.chat_id)} "
+                        f"topic_id={_code(dest.topic_id or '-')} default={_code(dest.is_default)}"
                     )
                 else:
                     chat_arg = parts[0]
@@ -211,8 +231,9 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     db.add(dest)
                     db.commit()
                     await reply(
-                        f"Destination ditambah. id={dest.id} chat_id={dest.chat_id} "
-                        f"topic_id={dest.topic_id or '-'} default={dest.is_default}"
+                        "Destination ditambah. "
+                        f"id={_code(dest.id)} chat_id={_code(dest.chat_id)} "
+                        f"topic_id={_code(dest.topic_id or '-')} default={_code(dest.is_default)}"
                     )
 
         elif cmd == "/listdest":
@@ -223,15 +244,16 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                 lines = ["Daftar destination:"]
                 for d in dests:
                     star = "⭐" if d.is_default else " "
-                    nm = d.title or ""
+                    nm = _esc(d.title or "")
                     lines.append(
-                        f"{star} id={d.id} chat_id={d.chat_id} topic_id={d.topic_id or '-'} {nm}"
+                        f"{star} id={_code(d.id)} chat_id={_code(d.chat_id)} "
+                        f"topic_id={_code(d.topic_id or '-')} {nm}"
                     )
                 await reply("\n".join(lines))
 
         elif cmd == "/usedest":
             if not arg or not arg.isdigit():
-                await reply("Format: /usedest <dest_id>")
+                await reply("Format: <code>/usedest &lt;dest_id&gt;</code>")
             else:
                 did = int(arg)
                 dest = (
@@ -247,20 +269,20 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     )
                     dest.is_default = True
                     db.commit()
-                    await reply(f"Default destination => id={dest.id}")
+                    await reply(f"Default destination ⇒ id={_code(dest.id)}")
 
         elif cmd == "/subscribe":
             if not arg:
                 await reply(
-                    "Format: /subscribe <owner/repo> [event1,event2,...]\n"
-                    "Contoh: /subscribe octocat/Hello-World push,pull_request"
+                    "Format: <code>/subscribe &lt;owner/repo&gt; [event1,event2,...]</code>\n"
+                    "Contoh: <code>/subscribe octocat/Hello-World push,pull_request</code>"
                 )
             else:
                 parts = arg.split(maxsplit=1)
                 repo = parts[0].strip()
                 events_csv = (parts[1].strip() if len(parts) > 1 else "*") or "*"
                 if "/" not in repo:
-                    await reply("Repo harus format owner/repo.")
+                    await reply("Repo harus format <code>owner/repo</code>.")
                 else:
                     bot = (
                         db.query(Bot)
@@ -269,7 +291,9 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                         .first()
                     )
                     if not bot:
-                        await reply("Belum ada bot. /connectbot <token> dulu.")
+                        await reply(
+                            "Belum ada bot. <code>/connectbot &lt;token&gt;</code> dulu."
+                        )
                     else:
                         dest = (
                             db.query(Destination)
@@ -278,7 +302,8 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                         )
                         if not dest:
                             await reply(
-                                "Belum ada destination default. /adddest ... lalu /usedest <id>."
+                                "Belum ada destination default. "
+                                "Gunakan <code>/adddest ...</code> lalu <code>/usedest &lt;id&gt;</code>."
                             )
                         else:
                             hook_id = uuid.uuid4().hex
@@ -296,13 +321,15 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                             db.commit()
                             payload_url = f"{settings.public_base_url}/wh/{hook_id}"
                             out = (
-                                f"Langganan dibuat ✅\n"
-                                f"id={sub.id}\nrepo={repo}\nacara={events_csv}\n\n"
-                                f"GitHub Webhook config:\n"
-                                f"- Payload URL: `{payload_url}`\n"
-                                f"- Content type: `application/json`\n"
-                                f"- Secret: `{secret}`\n"
-                                f"- Events: pilih sesuai kebutuhan\n"
+                                "Langganan dibuat ✅\n"
+                                f"id={_code(sub.id)}\n"
+                                f"repo={_code(repo)}\n"
+                                f"acara={_code(events_csv)}\n\n"
+                                "GitHub Webhook config:\n"
+                                f"- Payload URL: {_code(payload_url)}\n"
+                                f"- Content type: {_code('application/json')}\n"
+                                f"- Secret: {_code(secret)}\n"
+                                "- Events: pilih sesuai kebutuhan\n"
                             )
                             await reply(out)
 
@@ -314,13 +341,14 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                 lines = ["Daftar langganan:"]
                 for s in subs:
                     lines.append(
-                        f"id={s.id} repo={s.repo} events={s.events_csv} hook=/wh/{s.hook_id}"
+                        f"id={_code(s.id)} repo={_code(s.repo)} "
+                        f"events={_esc(s.events_csv)} hook={_code('/wh/' + s.hook_id)}"
                     )
                 await reply("\n".join(lines))
 
         elif cmd == "/unsubscribe":
             if not arg or not arg.isdigit():
-                await reply("Format: /unsubscribe <id>")
+                await reply("Format: <code>/unsubscribe &lt;id&gt;</code>")
             else:
                 sid = int(arg)
                 s = (
@@ -349,18 +377,18 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     dest.chat_id,
                     "Test ke destination default.",
                     topic_id=dest.topic_id,
-                    html=True,
+                    auto_split=True,
                 )
                 await reply("Dikirim.")
 
         elif cmd == "/whoami":
-            await reply(f"Kamu: *{'admin' if user.is_admin else 'user'}*")
+            await reply(f"Kamu: <b>{'admin' if user.is_admin else 'user'}</b>")
 
         elif cmd == "/promote":
             if not user.is_admin:
                 await reply("Hanya admin.")
             elif not arg:
-                await reply("Format: /promote <telegram_user_id>")
+                await reply("Format: <code>/promote &lt;telegram_user_id&gt;</code>")
             else:
                 target = db.query(User).filter_by(telegram_user_id=arg.strip()).first()
                 if not target:
@@ -369,14 +397,14 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     target.is_admin = True
                     db.commit()
                     await reply(
-                        f"Promote sukses: {target.telegram_user_id} kini admin."
+                        f"Promote sukses: {_code(target.telegram_user_id)} kini admin."
                     )
 
         elif cmd == "/demote":
             if not user.is_admin:
                 await reply("Hanya admin.")
             elif not arg:
-                await reply("Format: /demote <telegram_user_id>")
+                await reply("Format: <code>/demote &lt;telegram_user_id&gt;</code>")
             else:
                 target = db.query(User).filter_by(telegram_user_id=arg.strip()).first()
                 if not target:
@@ -385,7 +413,7 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     target.is_admin = False
                     db.commit()
                     await reply(
-                        f"Demote sukses: {target.telegram_user_id} kini user biasa."
+                        f"Demote sukses: {_code(target.telegram_user_id)} kini user biasa."
                     )
 
         elif cmd == "/listusers":
@@ -396,8 +424,9 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                 lines = ["Users:"]
                 for uu in us:
                     flag = "👑" if uu.is_admin else " "
+                    uname = f"@{uu.username}" if uu.username else "-"
                     lines.append(
-                        f"{flag} id={uu.id} tg={uu.telegram_user_id} @{uu.username or '-'}"
+                        f"{flag} id={_code(uu.id)} tg={_code(uu.telegram_user_id)} {uname}"
                     )
                 await reply("\n".join(lines))
 
@@ -412,14 +441,14 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     lines = ["Semua subscription:"]
                     for s in subs:
                         lines.append(
-                            f"#{s.id} owner={s.owner_user_id} {s.repo} "
-                            f"events={s.events_csv} hook=/wh/{s.hook_id}"
+                            f"#{_code(s.id)} owner={_code(s.owner_user_id)} {_esc(s.repo)} "
+                            f"events={_esc(s.events_csv)} hook={_code('/wh/' + s.hook_id)}"
                         )
                     await reply("\n".join(lines))
 
         elif cmd == "/checkdest":
             if not arg or not arg.isdigit():
-                await reply("Format: /checkdest <dest_id>")
+                await reply("Format: <code>/checkdest &lt;dest_id&gt;</code>")
             else:
                 d = (
                     db.query(Destination)
@@ -430,18 +459,20 @@ async def telegram_webhook(bot_id: str, token: str, upd: TgUpdate, request: Requ
                     await reply("Destination tidak ditemukan.")
                 else:
                     bot_numeric_id = parse_bot_id_from_token(b.token)
-                    r = await get_chat_member(b.token, d.chat_id, bot_numeric_id)
-                    if r.status_code >= 300:
-                        await reply(f"Gagal cek: {r.status_code} {r.text}")
+                    data = await get_chat_member(b.token, d.chat_id, bot_numeric_id)
+                    if not data.get("ok", False):
+                        await reply(
+                            f"Gagal cek: {_code(data.get('error_code', '???'))} "
+                            f"{_esc(data.get('description', ''))}"
+                        )
                     else:
-                        data = r.json()
                         status = (data.get("result") or {}).get("status")
                         await reply(
-                            f"Status bot di chat ini: *{status or 'unknown'}* "
-                            "(Channel perlu 'administrator')."
+                            f"Status bot di chat ini: <b>{_esc(status or 'unknown')}</b> "
+                            "(Channel perlu <i>administrator</i>)."
                         )
         else:
-            await reply("Perintah tidak dikenal. /help")
+            await reply("Perintah tidak dikenal. <code>/help</code>")
 
         return "ok"
 
