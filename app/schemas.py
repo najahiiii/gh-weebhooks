@@ -17,3 +17,7 @@ class TgUpdate(BaseModel):
     message: Optional[dict] = None
     edited_message: Optional[dict] = None
     channel_post: Optional[dict] = None
+    callback_query: Optional[dict] = None
+
+    class Config:
+        extra = "allow"

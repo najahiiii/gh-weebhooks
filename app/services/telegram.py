@@ -41,6 +41,7 @@ async def send_message(
     *,
     disable_web_page_preview: bool = True,
     auto_split: bool = False,
+    reply_markup: Optional[JSONDict] = None,
 ) -> JSONDict | list[JSONDict]:
     """Se d message"""
     api = f"{TELEGRAM_API_BASE}/bot{token}/sendMessage"
@@ -54,6 +55,8 @@ async def send_message(
     }
     if topic_id is not None:
         payload_base["message_thread_id"] = topic_id
+    if reply_markup is not None:
+        payload_base["reply_markup"] = reply_markup
 
     # Single send
     if not auto_split or len(rendered) <= 4096:
@@ -67,15 +70,97 @@ async def send_message(
     # Auto split
     results: list[JSONDict] = []
     async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
+        first_chunk = True
         for chunk in _split_html(rendered, 4096):
             p = dict(payload_base)
             p["text"] = chunk
+            if not first_chunk and "reply_markup" in p:
+                p.pop("reply_markup", None)
             r = await client.post(api, json=p)
             d = r.json()
             if r.status_code >= 300 or not d.get("ok", True):
                 raise HTTPException(500, f"Telegram error: {r.status_code} {r.text}")
             results.append(d)
+            first_chunk = False
     return results
+
+
+async def edit_message_text(
+    token: str,
+    chat_id: int | str,
+    message_id: int,
+    html_text: str,
+    *,
+    disable_web_page_preview: bool = True,
+    reply_markup: Optional[JSONDict] = None,
+) -> JSONDict:
+    """Edit an existing message."""
+
+    api = f"{TELEGRAM_API_BASE}/bot{token}/editMessageText"
+    payload: JSONDict = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": _normalize_newlines(html_text),
+        "parse_mode": "HTML",
+        "disable_web_page_preview": disable_web_page_preview,
+    }
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
+
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
+        resp = await client.post(api, json=payload)
+    data = resp.json()
+    if resp.status_code >= 300 or not data.get("ok", True):
+        raise HTTPException(500, f"Telegram error: {resp.status_code} {resp.text}")
+    return data
+
+
+async def edit_message_reply_markup(
+    token: str,
+    chat_id: int | str,
+    message_id: int,
+    reply_markup: Optional[JSONDict] = None,
+) -> JSONDict:
+    """Update inline keyboard for an existing message."""
+
+    api = f"{TELEGRAM_API_BASE}/bot{token}/editMessageReplyMarkup"
+    payload: JSONDict = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+    }
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
+
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
+        resp = await client.post(api, json=payload)
+    data = resp.json()
+    if resp.status_code >= 300 or not data.get("ok", True):
+        raise HTTPException(500, f"Telegram error: {resp.status_code} {resp.text}")
+    return data
+
+
+async def answer_callback_query(
+    token: str,
+    callback_query_id: str,
+    *,
+    text: str | None = None,
+    show_alert: bool = False,
+) -> JSONDict:
+    """Acknowledge a Telegram callback query."""
+
+    api = f"{TELEGRAM_API_BASE}/bot{token}/answerCallbackQuery"
+    payload: JSONDict = {"callback_query_id": callback_query_id}
+    if text:
+        payload["text"] = text
+    if show_alert:
+        payload["show_alert"] = True
+
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SHORT_SECONDS) as client:
+        resp = await client.post(api, json=payload)
+    data = resp.json()
+    if resp.status_code >= 300 or not data.get("ok", True):
+        raise HTTPException(500, f"Telegram error: {resp.status_code} {resp.text}")
+    return data
 
 
 async def get_chat_member(

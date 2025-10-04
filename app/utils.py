@@ -5,26 +5,26 @@ from __future__ import annotations
 import hashlib
 import hmac
 
-CMD_HELP = """Perintah:
-/start – daftarkan diri & cek status
-/adddest <chat_id> [nama] – tambah tujuan (PM/Group/Channel)
-/adddest here [nama] – simpan chat/topic saat ini
-/adddest <chat_id>:<topic_id> [nama] – format gabungan
-/listdest – daftar tujuan
-/usedest <dest_id> – set default tujuan
-/connectbot <token> – kaitkan bot milikmu
-/listbot – daftar bot milikmu
-/subscribe <owner/repo> [event1,event2,...] – buat webhook GitHub
-/listsubs – daftar langgananmu
-/unsubscribe <id> – hapus langganan
+CMD_HELP = """Commands:
+/start – register yourself and check role
+/adddest <chat_id> [name] – add a destination (PM/Group/Channel)
+/adddest here [name] – store the current chat/topic
+/adddest <chat_id>:<topic_id> [name] – combined format
+/listdest – list your destinations
+/usedest <dest_id> – set the default destination
+/connectbot <token> – link your Telegram bot
+/listbot – list your bots
+/subscribe <owner/repo> [event1,event2,...] – create a GitHub webhook subscription
+/listsubs – list your subscriptions
+/unsubscribe <id> – remove a subscription
 
 # Admin:
-/whoami – cek peranmu
-/promote <telegram_user_id>
-/demote <telegram_user_id>
-/listusers – semua user
-/listsubs_all – semua subscription
-/checkdest <dest_id> – cek status bot di chat
+/whoami – show your role
+/promote <telegram_user_id> – promote a user to admin
+/demote <telegram_user_id> – demote a user
+/listusers – list every user
+/listsubs_all – list every subscription
+/checkdest <dest_id> – verify bot status in a chat
 """
 
 
