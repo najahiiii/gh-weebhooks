@@ -11,6 +11,7 @@ from fastapi import APIRouter
 from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from app.config import settings
+from app.timezone import TZ_NAME
 from app.utils import CMD_HELP
 
 router = APIRouter()
@@ -35,7 +36,7 @@ Perintah Telegram
 Catatan
 -------
 - PUBLIC_BASE_URL: {settings.public_base_url}
-- Semua waktu disimpan dalam WIB (Asia/Jakarta).
+- Semua waktu disimpan dalam zona waktu {TZ_NAME}.
 """
 ).strip()
 
@@ -54,6 +55,7 @@ def render_setup_text() -> str:
     DB_URL=sqlite:///./github_tg.sqlite3
     PUBLIC_BASE_URL={base}
     ADMIN_USER_IDS=123456789
+    TIMEZONE={TZ_NAME}
 
     2) venv & deps
     --------------
