@@ -52,7 +52,7 @@ def setup_main_bot_form(
         if not _check_admin_key(key):
             if key:
                 return _error_template(request, "Forbidden", "Invalid admin key.", status_code=403)
-            login_url = request.url_for("auth_login") + f"?next={request.url.path}"
+            login_url = str(request.url_for("auth_login")) + f"?next={request.url.path}"
             return RedirectResponse(login_url, status_code=303)
 
     return templates.TemplateResponse(

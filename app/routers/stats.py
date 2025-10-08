@@ -74,7 +74,7 @@ def stats_page(
                     },
                     status_code=403,
                 )
-            login_url = request.url_for("auth_login") + f"?next={request.url.path}"
+            login_url = str(request.url_for("auth_login")) + f"?next={request.url.path}"
             return RedirectResponse(login_url, status_code=303)
 
     total_users = db.query(User).count()

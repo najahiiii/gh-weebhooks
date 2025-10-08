@@ -53,7 +53,7 @@ def new_bot_form(request: Request, key: Optional[str] = Query(None, alias="key")
                     "Invalid admin key.",
                     status_code=403,
                 )
-            login_url = request.url_for("auth_login") + f"?next={request.url.path}"
+            login_url = str(request.url_for("auth_login")) + f"?next={request.url.path}"
             return RedirectResponse(login_url, status_code=303)
 
     return templates.TemplateResponse(
@@ -132,7 +132,7 @@ async def bot_info(
                     "Invalid admin key.",
                     status_code=403,
                 )
-            login_url = request.url_for("auth_login") + f"?next={request.url.path}"
+            login_url = str(request.url_for("auth_login")) + f"?next={request.url.path}"
             return RedirectResponse(login_url, status_code=303)
 
     result = await get_webhook_info(token)
