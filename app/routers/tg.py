@@ -664,11 +664,17 @@ async def _handle_subinfo(ctx: CommandContext, arg: str) -> None:
             "Try selecting a subscription from the list again.",
         )
         return
+    payload_url = f"{settings.public_base_url}/wh/{sub.hook_id}"
     body = [
         f"ID: {_code(sub.id)}",
         f"Repository: {_code(sub.repo)}",
         f"Events: {_esc(sub.events_csv)}",
         f"Hook: {_code('/wh/' + sub.hook_id)}",
+        "",
+        "GitHub webhook settings:",
+        f"• Payload URL: {_code(payload_url)}",
+        f"• Content type: {_code('application/json')}",
+        f"• Secret: {_code(sub.secret)}",
     ]
     markup = {
         "inline_keyboard": [
