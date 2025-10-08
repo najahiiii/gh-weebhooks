@@ -13,7 +13,7 @@ from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.models import AdminSession
 from app.routers import auth, bots, gh, info, setup, stats, tg
-from app.timezone import now_wib
+from app.timezone import TZ, now_wib
 
 Base.metadata.create_all(engine)
 
@@ -34,7 +34,17 @@ class AdminSessionMiddleware(BaseHTTPMiddleware):
                     .filter(AdminSession.token == token)
                     .first()
                 )
-                if session and session.expires_at > now_wib():
+                current_time = now_wib()
+                if session and session.expires_at:
+                    expires_at = (
+                        session.expires_at
+                        if session.expires_at.tzinfo
+                        else session.expires_at.replace(tzinfo=TZ)
+                    )
+                else:
+                    expires_at = None
+
+                if session and expires_at and expires_at > current_time:
                     user = session.user
                     request.state.user = SimpleNamespace(
                         id=user.id,
