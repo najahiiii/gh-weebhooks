@@ -53,4 +53,5 @@ async def github_webhook(
 
     text = summarize_event(event, payload)
     await send_message(bot.token, dest.chat_id, text, topic_id=dest.topic_id, auto_split=True)
-    return "ok"
+    dest_label = dest.title.strip() if dest.title else dest.chat_id
+    return f"{event} event forwarded to {dest_label}"
