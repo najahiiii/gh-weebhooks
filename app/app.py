@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from app.db import Base, engine
-from app.routers import gh, info, tg, bots, stats
+from app.routers import bots, gh, info, setup, stats, tg
 
 Base.metadata.create_all(engine)
 
@@ -15,4 +15,5 @@ app.include_router(info.router)
 app.include_router(tg.router)
 app.include_router(gh.router)
 app.include_router(bots.router)
+app.include_router(setup.router)
 app.include_router(stats.router)

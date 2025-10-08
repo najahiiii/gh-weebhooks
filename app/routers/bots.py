@@ -2,16 +2,14 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Form, Query, Depends
+from fastapi import APIRouter, Depends, Form, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.models import Bot
-from app.services.users import ensure_user_by_tg_id as ensure_id
-from app.services.telegram import set_telegram_webhook, get_webhook_info
-from app.utils import parse_bot_id_from_token
+from app.services.bots import BotSetupError, register_bot
+from app.services.telegram import get_webhook_info
 
 router = APIRouter(tags=["Bots"])
 
@@ -77,32 +75,18 @@ async def add_bot(
             "<h3>Forbidden</h3><p>Invalid admin key.</p>", status_code=403
         )
 
-    bid = parse_bot_id_from_token(token)
-    if not bid:
-        return HTMLResponse(
-            "<h3>Error</h3><p>Invalid token format.</p>", status_code=400
+    try:
+        setup_result = await register_bot(
+            session,
+            token,
+            owner_tg_id,
+            public_base_url=public_base_url,
         )
-
-    # pastikan owner ada
-    owner = ensure_id(session, owner_tg_id)
-
-    if not owner.is_admin:
-        owner.is_admin = True
-        session.commit()
-
-    # create/update bot
-    bot = session.query(Bot).filter_by(bot_id=bid).first()
-    if not bot:
-        bot = Bot(owner_user_id=owner.id, bot_id=bid, token=token)
-        session.add(bot)
-    else:
-        bot.owner_user_id = owner.id
-        bot.token = token
-    session.commit()
-
-    # set webhook
-    base = (public_base_url or settings.public_base_url).rstrip("/")
-    result = await set_telegram_webhook(token, bid, base)
+    except BotSetupError as exc:
+        return HTMLResponse(
+            f"<h3>Error</h3><p>{exc}</p>",
+            status_code=400,
+        )
 
     info_link = f"/bots/info?token={token}"
     return HTMLResponse(
@@ -110,14 +94,15 @@ async def add_bot(
             <html>
             <body>
                 <h3>Bot saved</h3>
-                <p>bot_id: <code>{bid}</code><br>owner_tg_id: <code>{owner_tg_id}</code></p>
+                <p>bot_id: <code>{setup_result.bot_id}</code><br>owner_tg_id: <code>{owner_tg_id}</code></p>
+                <p>Webhook URL: <code>{setup_result.base_url}/tg/{setup_result.bot_id}/{token}</code></p>
                 <h4>setWebhook result</h4>
-                <pre>{result}</pre>
+                <pre>{setup_result.webhook_result}</pre>
                 <p><a href="{info_link}">Check getWebhookInfo</a></p>
                 <p><a href="/bots/new">Add another bot</a></p>
             </body>
             </html>""",
-        status_code=200 if result.get("ok") else 500,
+        status_code=200 if setup_result.webhook_result.get("ok") else 500,
     )
 
 
