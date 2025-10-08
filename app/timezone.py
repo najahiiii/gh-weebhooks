@@ -25,6 +25,7 @@ TZ, TZ_NAME = _load_timezone(settings.timezone or DEFAULT_TIMEZONE)
 def now_local() -> dt.datetime:
     """Current timezone-aware datetime in the configured timezone."""
 
+    return dt.datetime.now(tz=TZ)
 
 def now_wib() -> dt.datetime:
     """Backward-compatible alias for :func:`now_local`."""

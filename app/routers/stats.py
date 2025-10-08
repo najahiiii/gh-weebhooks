@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from textwrap import dedent
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -14,6 +15,7 @@ from app.config import settings
 from app.db import get_db
 from app.models import User, Bot, Destination, Subscription, WebhookEventLog
 from app.templating import templates
+from app.timezone import TZ
 
 router = APIRouter(tags=["Stats"])
 
@@ -52,6 +54,14 @@ def _mask_chat_id(chat_id: Optional[str]) -> str:
     if s.startswith("-"):
         return "-…" + s[-4:]
     return _mask_generic(s, keep=3)
+
+
+def _fmt_dt(value: Optional[datetime]) -> str:
+    if not value:
+        return "-"
+    if value.tzinfo:
+        return value.astimezone(TZ).strftime("%Y-%m-%d %H:%M")
+    return value.strftime("%Y-%m-%d %H:%M")
 
 
 @router.get("/stats", response_class=HTMLResponse)
@@ -107,7 +117,7 @@ def stats_page(
             "bots": len(user.bots),
             "destinations": len(user.destinations),
             "subscriptions": len(user.subs),
-            "first_seen": user.first_seen_at.strftime("%Y-%m-%d %H:%M"),
+            "first_seen": _fmt_dt(user.first_seen_at),
         }
         for user in users
     ]
@@ -125,7 +135,7 @@ def stats_page(
                 "destination_title": dest.title or "-",
                 "destination_masked": _mask_chat_id(dest.chat_id),
                 "topic_id": dest.topic_id,
-                "created_at": sub.created_at.strftime("%Y-%m-%d %H:%M"),
+                "created_at": _fmt_dt(sub.created_at),
             }
         )
 
@@ -144,7 +154,7 @@ def stats_page(
 
     event_rows = [
         {
-            "created_at": log.created_at.strftime("%Y-%m-%d %H:%M"),
+            "created_at": _fmt_dt(log.created_at),
             "event_type": log.event_type or "-",
             "repository": log.repository or "-",
             "status_label": (log.status or "unknown").title(),

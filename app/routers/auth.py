@@ -70,7 +70,16 @@ def _set_session_cookie(response: JSONResponse, token: str) -> None:
 
 def _create_session(db: Session, user: User) -> AdminSession:
     token = secrets.token_urlsafe(48)
-    expires_at = now_wib() + timedelta(hours=settings.session_duration_hours)
+    try:
+        duration_hours = float(settings.session_duration_hours)
+    except (TypeError, ValueError):
+        duration_hours = 24.0
+
+    base_time = now_wib()
+    if base_time is None:
+        raise RuntimeError("Timezone helper now_wib() returned None")
+
+    expires_at = base_time + timedelta(hours=duration_hours)
 
     # purge old sessions for this user to avoid clutter
     db.query(AdminSession).filter(

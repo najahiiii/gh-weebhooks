@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -34,28 +35,48 @@ class AdminSessionMiddleware(BaseHTTPMiddleware):
                     .filter(AdminSession.token == token)
                     .first()
                 )
-                current_time = now_wib()
-                if session and session.expires_at:
-                    expires_at = (
-                        session.expires_at
-                        if session.expires_at.tzinfo
-                        else session.expires_at.replace(tzinfo=TZ)
-                    )
-                else:
+                if session:
+                    current_time = now_wib()
+                    raw_expires = session.expires_at
                     expires_at = None
 
-                if session and expires_at and expires_at > current_time:
-                    user = session.user
-                    request.state.user = SimpleNamespace(
-                        id=user.id,
-                        telegram_user_id=user.telegram_user_id,
-                        username=user.username,
-                        is_admin=user.is_admin,
-                        session_token=session.token,
-                    )
-                elif session:
-                    db.delete(session)
-                    db.commit()
+                    if isinstance(raw_expires, datetime):
+                        expires_at = (
+                            raw_expires
+                            if raw_expires.tzinfo
+                            else raw_expires.replace(tzinfo=TZ)
+                        )
+                    elif isinstance(raw_expires, str):
+                        try:
+                            parsed = datetime.fromisoformat(raw_expires)
+                        except ValueError:
+                            parsed = None
+                        if parsed:
+                            expires_at = (
+                                parsed
+                                if parsed.tzinfo
+                                else parsed.replace(tzinfo=TZ)
+                            )
+                            session.expires_at = expires_at
+                            db.commit()
+                        else:
+                            expires_at = None
+                    elif raw_expires is not None:
+                        # Unexpected type: drop the session
+                        expires_at = None
+
+                    if not expires_at or expires_at <= current_time:
+                        db.delete(session)
+                        db.commit()
+                    else:
+                        user = session.user
+                        request.state.user = SimpleNamespace(
+                            id=user.id,
+                            telegram_user_id=user.telegram_user_id,
+                            username=user.username,
+                            is_admin=user.is_admin,
+                            session_token=session.token,
+                        )
         response = await call_next(request)
         return response
 
