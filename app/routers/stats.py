@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
-from app.models import User, Bot, Destination, Subscription
+from app.models import User, Bot, Destination, Subscription, WebhookEventLog
 from app.templating import templates
 
 router = APIRouter(tags=["Stats"])
@@ -81,6 +81,7 @@ def stats_page(
     total_bots = db.query(Bot).count()
     total_dests = db.query(Destination).count()
     total_subs = db.query(Subscription).count()
+    total_events = db.query(WebhookEventLog).count()
 
     # Ringkasan per-user
     users = db.query(User).order_by(User.first_seen_at.asc(), User.id.asc()).all()
@@ -95,6 +96,7 @@ def stats_page(
         "bots": total_bots,
         "destinations": total_dests,
         "subscriptions": total_subs,
+        "events": total_events,
     }
 
     user_rows = [
@@ -127,14 +129,44 @@ def stats_page(
             }
         )
 
+    recent_events = (
+        db.query(WebhookEventLog)
+        .order_by(WebhookEventLog.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    status_badges = {
+        "success": "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+        "error": "border-red-500/40 bg-red-500/10 text-red-100",
+        "ignored": "border-slate-600/40 bg-slate-800/70 text-slate-200",
+    }
+
+    event_rows = [
+        {
+            "created_at": log.created_at.strftime("%Y-%m-%d %H:%M"),
+            "event_type": log.event_type or "-",
+            "repository": log.repository or "-",
+            "status_label": (log.status or "unknown").title(),
+            "status_class": status_badges.get(
+                (log.status or "").lower(),
+                "border-slate-700/50 bg-slate-900/70 text-slate-200",
+            ),
+            "summary_html": log.summary or "",
+            "error": log.error_message,
+        }
+        for log in recent_events
+    ]
+
     return templates.TemplateResponse(
         "stats/index.html",
         {
             "request": request,
             "page_title": "Stats Dashboard",
-            "page_description": "Review users, bots, destinations, and recent GitHub subscriptions across the GitHub → Telegram bridge.",
+            "page_description": "Review users, bots, destinations, and recent GitHub activity across the GitHub → Telegram bridge.",
             "summary": summary,
             "user_rows": user_rows,
             "subscription_rows": subscription_rows,
+            "event_rows": event_rows,
         },
     )

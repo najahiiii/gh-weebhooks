@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from .db import Base
@@ -75,6 +75,7 @@ class Subscription(Base):
     owner = relationship("User", back_populates="subs")
     bot = relationship("Bot", back_populates="subs")
     destination = relationship("Destination", back_populates="subs")
+    logs = relationship("WebhookEventLog", back_populates="subscription", cascade="all,delete")
 
 
 class AdminSession(Base):
@@ -88,3 +89,22 @@ class AdminSession(Base):
     expires_at = Column(DateTime, nullable=False)
 
     user = relationship("User", back_populates="sessions")
+
+
+class WebhookEventLog(Base):
+    """Stored GitHub webhook deliveries."""
+
+    __tablename__ = "webhook_event_logs"
+
+    id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime, default=now_wib, index=True)
+    subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=True, index=True)
+    hook_id = Column(String, index=True)
+    event_type = Column(String, index=True)
+    repository = Column(String, default="")
+    status = Column(String, default="success", index=True)
+    summary = Column(Text, default="")
+    payload = Column(Text, default="")
+    error_message = Column(Text, nullable=True)
+
+    subscription = relationship("Subscription", back_populates="logs")
