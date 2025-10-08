@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+  <head>
+    {% set title = page_title or "GitHub → Telegram Notifier" %} {% set
+    description = page_description or "Receive GitHub notifications directly in
+    Telegram with multi-user, multi-bot support." %}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+    <meta name="description" content="{{ description }}" />
+    <link rel="canonical" href="{{ request.url }}" />
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:description" content="{{ description }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.url }}" />
+    <meta
+      property="og:image"
+      content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}"
+    />
+    <meta property="og:site_name" content="GitHub → Telegram Notifier" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ title }}" />
+    <meta name="twitter:description" content="{{ description }}" />
+    <meta
+      name="twitter:image"
+      content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}"
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="{{ request.url_for('static', path='images/favicon.svg') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="{{ request.url_for('static', path='images/favicon-96x96.png') }}"
+    />
+    <link
+      rel="shortcut icon"
+      href="{{ request.url_for('static', path='images/favicon.ico') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="{{ request.url_for('static', path='images/apple-touch-icon.png') }}"
+    />
+    <link
+      rel="manifest"
+      href="{{ request.url_for('static', path='images/site.webmanifest') }}"
+    />
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <style>
+      body {
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      #particles-js {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: radial-gradient(
+          circle at 20% 20%,
+          rgba(56, 189, 248, 0.18),
+          rgba(15, 23, 42, 0.9) 55%,
+          rgba(2, 6, 23, 1)
+        );
+      }
+
+      .content-wrapper {
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body class="h-full text-slate-100">
+    <div id="particles-js" aria-hidden="true"></div>
+    <div class="content-wrapper flex min-h-screen flex-col">
+      <nav class="mx-auto mt-6 w-full max-w-5xl px-6">
+        <div
+          class="flex flex-col items-center justify-between gap-4 rounded-3xl border border-slate-800/60 bg-slate-900/80 px-6 py-4 text-sm text-slate-300 shadow-lg shadow-slate-950/30 backdrop-blur sm:flex-row"
+        >
+          <div class="flex items-center gap-3">
+            <img
+              src="{{ request.url_for('static', path='images/favicon.svg') }}"
+              alt="GitHub → Telegram Notifier logo"
+              class="h-10 w-10"
+            />
+            <div>
+              <p class="text-xs uppercase tracking-[0.3em] text-slate-500">
+                gh-weebhooks
+              </p>
+              <p class="text-base font-semibold text-slate-100">
+                GitHub → Telegram Notifier
+              </p>
+            </div>
+          </div>
+          <div
+            class="flex flex-wrap items-center justify-center gap-2 text-xs font-medium uppercase tracking-wide"
+          >
+            <a
+              href="{{ request.url_for('root') }}"
+              class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
+              >Home</a
+            >
+            <a
+              href="{{ request.url_for('http_help') }}"
+              class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
+              >/help</a
+            >
+            <a
+              href="{{ request.url_for('http_setup') }}"
+              class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
+              >/setup</a
+            >
+            <a
+              href="{{ request.url_for('stats_page') }}"
+              class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
+              >stats</a
+            >
+            <a
+              href="{{ request.url_for('new_bot_form') }}"
+              class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
+              >add bots</a
+            >
+            <a
+              href="{{ request.url_for('setup_main_bot_form') }}"
+              class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
+              >add main bots</a
+            >
+            {% if request.state.user and request.state.user.is_admin %}
+            <form
+              method="post"
+              action="{{ request.url_for('auth_logout') }}"
+              class="flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-emerald-100 transition hover:border-emerald-400 hover:text-emerald-100"
+            >
+              <span class="text-xs normal-case text-emerald-200">
+                {{ request.state.user.username or request.state.user.telegram_user_id }}
+              </span>
+              <button type="submit" class="text-xs uppercase tracking-wide">
+                Logout
+              </button>
+            </form>
+            {% else %}
+            <a
+              href="{{ request.url_for('auth_login') }}?next={{ request.url.path }}"
+              class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
+              >admin login</a
+            >
+            {% endif %}
+          </div>
+        </div>
+      </nav>
+      <main
+        class="flex flex-1 flex-col items-center justify-center gap-12 px-6 py-16"
+      >
+        <header class="max-w-2xl text-center">
+          <p class="text-sm font-semibold uppercase tracking-wide text-sky-300">
+            Webhook bridge
+          </p>
+          <h1 class="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
+            GitHub → Telegram
+          </h1>
+          <p class="mt-4 text-base text-slate-300 sm:text-lg">
+            Receive GitHub notifications directly in Telegram chats. Explore the
+            docs below to learn how to configure hooks, automate updates, and
+            monitor delivery statistics.
+          </p>
+        </header>
+
+        <section class="grid w-full max-w-4xl gap-6 sm:grid-cols-2">
+          <button
+            type="button"
+            data-open-modal="help"
+            class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 text-left shadow-lg shadow-slate-950/40 transition hover:border-sky-400 hover:bg-slate-900/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+          >
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-slate-100">HTTP Help</h2>
+              <span class="text-sky-300 transition group-hover:text-sky-200"
+                >→</span
+              >
+            </div>
+            <p class="mt-3 text-sm text-slate-400">
+              Browse the available REST endpoints and Telegram bot commands
+              supported by the service.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            data-open-modal="setup"
+            class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 text-left shadow-lg shadow-slate-950/40 transition hover:border-emerald-400 hover:bg-slate-900/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+          >
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-slate-100">Setup Guide</h2>
+              <span
+                class="text-emerald-300 transition group-hover:text-emerald-200"
+                >→</span
+              >
+            </div>
+            <p class="mt-3 text-sm text-slate-400">
+              Follow the end-to-end instructions to configure environment
+              variables, webhooks, and deployment.
+            </p>
+          </button>
+        </section>
+
+        <footer class="text-xs text-slate-500">
+          &copy; {{ year }}
+          <a href="https://github.com/najahiiii/gh-weebhooks">gh-weebhooks</a>.
+        </footer>
+      </main>
+    </div>
+
+    <div
+      id="modal-help"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4 py-10"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/60"
+      >
+        <div
+          class="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6 py-4"
+        >
+          <h3 class="text-lg font-semibold text-slate-100">HTTP Help</h3>
+          <button
+            type="button"
+            class="rounded-md p-1 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-200"
+            data-close-modal
+            aria-label="Close HTTP Help"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="max-h-[70vh] overflow-y-auto bg-slate-950/60 px-6 py-6">
+          <pre class="whitespace-pre-wrap text-sm text-slate-200">
+{{ help_text }}</pre
+          >
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="modal-setup"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4 py-10"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/60"
+      >
+        <div
+          class="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6 py-4"
+        >
+          <h3 class="text-lg font-semibold text-slate-100">Setup Guide</h3>
+          <button
+            type="button"
+            class="rounded-md p-1 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-200"
+            data-close-modal
+            aria-label="Close Setup Guide"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="max-h-[70vh] overflow-y-auto bg-slate-950/60 px-6 py-6">
+          <pre class="whitespace-pre-wrap text-sm text-slate-200">
+{{ setup_text }}</pre
+          >
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      if (window.particlesJS) {
+        particlesJS("particles-js", {
+          particles: {
+            number: { value: 60, density: { enable: true, value_area: 800 } },
+            color: { value: "#38bdf8" },
+            shape: { type: "circle" },
+            opacity: { value: 0.3 },
+            size: { value: 3, random: true },
+            line_linked: {
+              enable: true,
+              distance: 150,
+              color: "#38bdf8",
+              opacity: 0.2,
+              width: 1,
+            },
+            move: {
+              enable: true,
+              speed: 2,
+              direction: "none",
+              random: false,
+              straight: false,
+              out_mode: "out",
+              attract: { enable: false },
+            },
+          },
+          interactivity: {
+            detect_on: "canvas",
+            events: {
+              onhover: { enable: true, mode: "repulse" },
+              onclick: { enable: true, mode: "push" },
+              resize: true,
+            },
+            modes: {
+              repulse: { distance: 120, duration: 0.4 },
+              push: { particles_nb: 4 },
+            },
+          },
+          retina_detect: true,
+        });
+      }
+
+      const body = document.body;
+      const openButtons = document.querySelectorAll("[data-open-modal]");
+      const modals = new Map([
+        ["help", document.getElementById("modal-help")],
+        ["setup", document.getElementById("modal-setup")],
+      ]);
+
+      function openModal(key) {
+        const modal = modals.get(key);
+        if (!modal) return;
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        body.classList.add("overflow-hidden");
+        const closeButton = modal.querySelector("[data-close-modal]");
+        closeButton?.focus();
+      }
+
+      function closeModal(modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        body.classList.remove("overflow-hidden");
+      }
+
+      openButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          openModal(button.dataset.openModal);
+        });
+      });
+
+      document.querySelectorAll("[data-close-modal]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const modal = button.closest('[role="dialog"]');
+          if (modal) {
+            closeModal(modal);
+          }
+        });
+      });
+
+      modals.forEach((modal) => {
+        modal.addEventListener("click", (event) => {
+          if (event.target === modal) {
+            closeModal(modal);
+          }
+        });
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          modals.forEach((modal) => {
+            if (!modal.classList.contains("hidden")) {
+              closeModal(modal);
+            }
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

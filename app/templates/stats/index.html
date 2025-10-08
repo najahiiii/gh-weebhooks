@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+  <head>
+    {% set title = page_title or "Stats Dashboard" %} {% set description =
+    page_description or "Review users, bots, destinations, and subscriptions in
+    the GitHub → Telegram bridge." %}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+    <meta name="description" content="{{ description }}" />
+    <link rel="canonical" href="{{ request.url }}" />
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:description" content="{{ description }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.url }}" />
+    <meta
+      property="og:image"
+      content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}"
+    />
+    <meta property="og:site_name" content="GitHub → Telegram Notifier" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ title }}" />
+    <meta name="twitter:description" content="{{ description }}" />
+    <meta
+      name="twitter:image"
+      content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}"
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="{{ request.url_for('static', path='images/favicon.svg') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="{{ request.url_for('static', path='images/favicon-96x96.png') }}"
+    />
+    <link
+      rel="shortcut icon"
+      href="{{ request.url_for('static', path='images/favicon.ico') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="{{ request.url_for('static', path='images/apple-touch-icon.png') }}"
+    />
+    <link
+      rel="manifest"
+      href="{{ request.url_for('static', path='images/site.webmanifest') }}"
+    />
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <style>
+      body {
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      #particles-js {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: radial-gradient(
+          circle at 20% 20%,
+          rgba(59, 130, 246, 0.12),
+          rgba(15, 23, 42, 0.95) 55%,
+          rgba(2, 6, 23, 1)
+        );
+      }
+
+      .content-wrapper {
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div id="particles-js" aria-hidden="true"></div>
+    <main class="content-wrapper mx-auto w-full max-w-6xl px-6 py-12">
+      <header
+        class="mb-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="flex items-start gap-3">
+          <img
+            src="{{ request.url_for('static', path='images/favicon.svg') }}"
+            alt="GitHub → Telegram Notifier logo"
+            class="mt-1 h-10 w-10"
+          />
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-slate-500">
+              gh-weebhooks
+            </p>
+            <h1 class="text-3xl font-semibold text-slate-50">
+              Stats Dashboard
+            </h1>
+            <p class="text-sm text-slate-400">
+              Aggregate metrics and recent activity. Secrets remain hidden.
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-2 text-xs text-slate-500">
+          <a
+            href="/help"
+            class="rounded-xl border border-slate-700/50 px-3 py-1.5 text-slate-300 hover:border-slate-500"
+            >Help</a
+          >
+          <a
+            href="/setup"
+            class="rounded-xl border border-slate-700/50 px-3 py-1.5 text-slate-300 hover:border-slate-500"
+            >Setup</a
+          >
+        </div>
+      </header>
+
+      <section class="grid gap-4 md:grid-cols-4">
+        <div
+          class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/40"
+        >
+          <p class="text-xs uppercase tracking-wide text-slate-400">Users</p>
+          <p class="mt-2 text-3xl font-semibold text-slate-50">
+            {{ summary.users }}
+          </p>
+        </div>
+        <div
+          class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/40"
+        >
+          <p class="text-xs uppercase tracking-wide text-slate-400">Bots</p>
+          <p class="mt-2 text-3xl font-semibold text-slate-50">
+            {{ summary.bots }}
+          </p>
+        </div>
+        <div
+          class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/40"
+        >
+          <p class="text-xs uppercase tracking-wide text-slate-400">
+            Destinations
+          </p>
+          <p class="mt-2 text-3xl font-semibold text-slate-50">
+            {{ summary.destinations }}
+          </p>
+        </div>
+        <div
+          class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-4 shadow-lg shadow-slate-950/40"
+        >
+          <p class="text-xs uppercase tracking-wide text-slate-400">
+            Subscriptions
+          </p>
+          <p class="mt-2 text-3xl font-semibold text-slate-50">
+            {{ summary.subscriptions }}
+          </p>
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <h2 class="text-lg font-semibold text-slate-100">Per-user overview</h2>
+        <p class="text-xs text-slate-500">
+          Telegram IDs and chat identifiers are masked for privacy.
+        </p>
+        <div
+          class="mt-4 overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-900/70 shadow-lg shadow-slate-950/40"
+        >
+          <table class="min-w-full divide-y divide-slate-800/80 text-sm">
+            <thead
+              class="bg-slate-900/70 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"
+            >
+              <tr>
+                <th class="px-4 py-3">User</th>
+                <th class="px-4 py-3">Telegram</th>
+                <th class="px-4 py-3">Admin</th>
+                <th class="px-4 py-3">Bots</th>
+                <th class="px-4 py-3">Destinations</th>
+                <th class="px-4 py-3">Subscriptions</th>
+                <th class="px-4 py-3">First Seen</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-200">
+              {% for row in user_rows %}
+              <tr class="hover:bg-slate-900/60">
+                <td class="px-4 py-3">{{ row.username }}</td>
+                <td class="px-4 py-3 font-mono text-xs text-slate-400">
+                  {{ row.telegram_masked }}
+                </td>
+                <td class="px-4 py-3">{{ "✅" if row.is_admin else "—" }}</td>
+                <td class="px-4 py-3">{{ row.bots }}</td>
+                <td class="px-4 py-3">{{ row.destinations }}</td>
+                <td class="px-4 py-3">{{ row.subscriptions }}</td>
+                <td class="px-4 py-3 text-xs text-slate-400">
+                  {{ row.first_seen }}
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="7" class="px-4 py-6 text-center text-slate-500">
+                  No users yet.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <h2 class="text-lg font-semibold text-slate-100">
+          Recent subscriptions
+        </h2>
+        <p class="text-xs text-slate-500">
+          Latest 50 entries. Sensitive tokens remain hidden.
+        </p>
+        <div
+          class="mt-4 overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-900/70 shadow-lg shadow-slate-950/40"
+        >
+          <table class="min-w-full divide-y divide-slate-800/80 text-sm">
+            <thead
+              class="bg-slate-900/70 text-left text-xs font-semibold uppercase tracking-wide text-slate-400"
+            >
+              <tr>
+                <th class="px-4 py-3">Repository</th>
+                <th class="px-4 py-3">Events</th>
+                <th class="px-4 py-3">Owner</th>
+                <th class="px-4 py-3">Destination</th>
+                <th class="px-4 py-3">Created</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-200">
+              {% for sub in subscription_rows %}
+              <tr class="hover:bg-slate-900/60">
+                <td class="px-4 py-3 font-medium">{{ sub.repo }}</td>
+                <td class="px-4 py-3">
+                  <code
+                    class="rounded bg-slate-800/80 px-2 py-1 text-xs text-slate-200"
+                    >{{ sub.events }}</code
+                  >
+                </td>
+                <td class="px-4 py-3">
+                  {{ sub.owner_username }}
+                  <span
+                    class="ml-2 inline-flex items-center rounded-full border border-slate-700/60 px-2 py-0.5 text-[0.7rem] text-slate-400"
+                  >
+                    {{ sub.owner_masked }}
+                  </span>
+                </td>
+                <td class="px-4 py-3">
+                  {{ sub.destination_title }}
+                  <span
+                    class="ml-2 inline-flex items-center rounded-full border border-slate-700/60 px-2 py-0.5 text-[0.7rem] text-slate-400"
+                  >
+                    {{ sub.destination_masked }}
+                  </span>
+                  {% if sub.topic_id %}
+                  <span
+                    class="ml-2 inline-flex items-center rounded-full border border-emerald-600/40 bg-emerald-500/10 px-2 py-0.5 text-[0.7rem] text-emerald-200"
+                  >
+                    topic:{{ sub.topic_id }}
+                  </span>
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3 text-xs text-slate-400">
+                  {{ sub.created_at }}
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="px-4 py-6 text-center text-slate-500">
+                  No subscriptions yet.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      if (window.particlesJS) {
+        particlesJS("particles-js", {
+          particles: {
+            number: { value: 70, density: { enable: true, value_area: 900 } },
+            color: { value: "#60a5fa" },
+            shape: { type: "circle" },
+            opacity: { value: 0.22 },
+            size: { value: 3, random: true },
+            line_linked: {
+              enable: true,
+              distance: 160,
+              color: "#60a5fa",
+              opacity: 0.18,
+              width: 1,
+            },
+            move: {
+              enable: true,
+              speed: 1.8,
+              direction: "none",
+              random: false,
+              straight: false,
+              out_mode: "out",
+              attract: { enable: false },
+            },
+          },
+          interactivity: {
+            detect_on: "canvas",
+            events: {
+              onhover: { enable: true, mode: "repulse" },
+              onclick: { enable: true, mode: "push" },
+              resize: true,
+            },
+            modes: {
+              repulse: { distance: 130, duration: 0.4 },
+              push: { particles_nb: 4 },
+            },
+          },
+          retina_detect: true,
+        });
+      }
+    </script>
+  </body>
+</html>

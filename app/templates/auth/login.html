@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en" class="h-full bg-slate-950">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Login</title>
+    <meta
+      name="description"
+      content="Authenticate with Telegram to access the GitHub → Telegram admin tools."
+    />
+    <link rel="canonical" href="{{ request.url }}" />
+    <meta property="og:title" content="Admin Login" />
+    <meta
+      property="og:description"
+      content="Authenticate with Telegram to access the GitHub → Telegram admin tools."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.url }}" />
+    <meta
+      property="og:image"
+      content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}"
+    />
+    <meta property="og:site_name" content="GitHub → Telegram Notifier" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Admin Login" />
+    <meta
+      name="twitter:description"
+      content="Authenticate with Telegram to access the GitHub → Telegram admin tools."
+    />
+    <meta
+      name="twitter:image"
+      content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}"
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="{{ request.url_for('static', path='images/favicon.svg') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="{{ request.url_for('static', path='images/favicon-96x96.png') }}"
+    />
+    <link
+      rel="shortcut icon"
+      href="{{ request.url_for('static', path='images/favicon.ico') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="{{ request.url_for('static', path='images/apple-touch-icon.png') }}"
+    />
+    <link
+      rel="manifest"
+      href="{{ request.url_for('static', path='images/site.webmanifest') }}"
+    />
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <style>
+      body {
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      #particles-js {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: radial-gradient(
+          circle at 20% 20%,
+          rgba(56, 189, 248, 0.2),
+          rgba(15, 23, 42, 0.95) 55%,
+          rgba(2, 6, 23, 1)
+        );
+      }
+
+      .content-wrapper {
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body class="h-full text-slate-100">
+    <div id="particles-js" aria-hidden="true"></div>
+    <main class="content-wrapper flex min-h-screen items-center justify-center px-4 py-16">
+      <div
+        class="w-full max-w-lg rounded-3xl border border-slate-800/60 bg-slate-900/80 p-10 shadow-2xl shadow-slate-950/40 backdrop-blur"
+      >
+        <div class="mb-6 flex flex-col items-center gap-3 text-center">
+          <img
+            src="{{ request.url_for('static', path='images/favicon.svg') }}"
+            alt="GitHub → Telegram Notifier logo"
+            class="h-14 w-14"
+          />
+          <h1 class="text-3xl font-semibold text-slate-50">Admin Login</h1>
+          <p class="text-sm text-slate-400">
+            Sign in with Telegram to manage bots, destinations, and subscriptions.
+          </p>
+        </div>
+
+        {% if login_disabled %}
+        <div
+          class="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+        >
+          Telegram login is currently disabled. {{ reason }}
+        </div>
+        {% else %}
+        <div id="login-section" class="flex flex-col items-center gap-6">
+          <p class="text-xs uppercase tracking-wide text-slate-500">
+            Authorize with Telegram
+          </p>
+          <div id="telegram-login-widget"></div>
+          <p class="text-xs text-slate-500">
+            Only Telegram accounts marked as admins can access the dashboard.
+          </p>
+          <div
+            id="login-status"
+            class="hidden w-full rounded-xl border border-slate-700/60 bg-slate-900/70 px-4 py-3 text-sm text-slate-200"
+          ></div>
+        </div>
+        {% endif %}
+
+        <div class="mt-10 text-center text-xs text-slate-500">
+          <a href="{{ next_path }}" class="text-sky-300 hover:text-sky-200">
+            ← Return to previous page
+          </a>
+        </div>
+      </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      if (window.particlesJS) {
+        particlesJS('particles-js', {
+          particles: {
+            number: { value: 60, density: { enable: true, value_area: 800 } },
+            color: { value: '#38bdf8' },
+            shape: { type: 'circle' },
+            opacity: { value: 0.3 },
+            size: { value: 3, random: true },
+            line_linked: {
+              enable: true,
+              distance: 150,
+              color: '#38bdf8',
+              opacity: 0.2,
+              width: 1,
+            },
+            move: {
+              enable: true,
+              speed: 2,
+              direction: 'none',
+              random: false,
+              straight: false,
+              out_mode: 'out',
+              attract: { enable: false },
+            },
+          },
+          interactivity: {
+            detect_on: 'canvas',
+            events: {
+              onhover: { enable: true, mode: 'repulse' },
+              onclick: { enable: true, mode: 'push' },
+              resize: true,
+            },
+            modes: {
+              repulse: { distance: 120, duration: 0.4 },
+              push: { particles_nb: 4 },
+            },
+          },
+          retina_detect: true,
+        });
+      }
+    </script>
+    {% if not login_disabled %}
+    <script>
+      const NEXT_PATH = {{ next_path | tojson }};
+      const statusBox = document.getElementById('login-status');
+
+      function setStatus(message, type = 'info') {
+        if (!statusBox) return;
+        statusBox.textContent = message;
+        statusBox.classList.remove('hidden');
+        statusBox.classList.remove(
+          'border-slate-700/60',
+          'text-slate-200',
+          'border-emerald-500/40',
+          'text-emerald-200',
+          'border-red-500/40',
+          'text-red-100'
+        );
+        if (type === 'success') {
+          statusBox.classList.add('border-emerald-500/40', 'text-emerald-200');
+        } else if (type === 'error') {
+          statusBox.classList.add('border-red-500/40', 'text-red-100');
+        } else {
+          statusBox.classList.add('border-slate-700/60', 'text-slate-200');
+        }
+      }
+
+      async function onTelegramAuth(user) {
+        try {
+          setStatus('Verifying Telegram login…');
+          const response = await fetch('{{ request.url_for("auth_verify") }}?next=' + encodeURIComponent(NEXT_PATH), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(user),
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            setStatus(data.detail || 'Login failed. You might not be an admin.', 'error');
+            return;
+          }
+          setStatus('Success! Redirecting…', 'success');
+          window.location.href = data.redirect_to || NEXT_PATH || '/';
+        } catch (err) {
+          console.error(err);
+          setStatus('Unexpected error while contacting the server.', 'error');
+        }
+      }
+
+      window.onTelegramAuth = onTelegramAuth;
+    </script>
+    <script
+      async
+      src="https://telegram.org/js/telegram-widget.js?22"
+      data-telegram-login="{{ bot_username }}"
+      data-size="large"
+      data-onauth="onTelegramAuth(user)"
+      data-request-access="write"
+    ></script>
+    {% endif %}
+  </body>
+</html>

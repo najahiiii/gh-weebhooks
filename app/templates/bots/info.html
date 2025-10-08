@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+  <head>
+    {% set title = page_title or "Webhook Info" %} {% set description =
+    page_description or "Inspect the current Telegram webhook configuration for
+    this bot token." %}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+    <meta name="description" content="{{ description }}" />
+    <link rel="canonical" href="{{ request.url }}" />
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:description" content="{{ description }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.url }}" />
+    <meta
+      property="og:image"
+      content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}"
+    />
+    <meta property="og:site_name" content="GitHub → Telegram Notifier" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ title }}" />
+    <meta name="twitter:description" content="{{ description }}" />
+    <meta
+      name="twitter:image"
+      content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}"
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="{{ request.url_for('static', path='images/favicon.svg') }}"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="{{ request.url_for('static', path='images/favicon-96x96.png') }}"
+    />
+    <link
+      rel="shortcut icon"
+      href="{{ request.url_for('static', path='images/favicon.ico') }}"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="{{ request.url_for('static', path='images/apple-touch-icon.png') }}"
+    />
+    <link
+      rel="manifest"
+      href="{{ request.url_for('static', path='images/site.webmanifest') }}"
+    />
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <style>
+      body {
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      #particles-js {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: radial-gradient(
+          circle at 20% 20%,
+          rgba(56, 189, 248, 0.15),
+          rgba(15, 23, 42, 0.92) 55%,
+          rgba(2, 6, 23, 1)
+        );
+      }
+
+      .content-wrapper {
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body class="h-full text-slate-100">
+    <div id="particles-js" aria-hidden="true"></div>
+    <main
+      class="content-wrapper flex min-h-screen items-center justify-center px-4 py-16"
+    >
+      <div
+        class="w-full max-w-2xl rounded-3xl border border-slate-800/60 bg-slate-900/80 p-10 shadow-2xl shadow-slate-950/50 backdrop-blur"
+      >
+        <img
+          src="{{ request.url_for('static', path='images/favicon.svg') }}"
+          alt="GitHub → Telegram Notifier logo"
+          class="mx-auto mb-4 h-12 w-12"
+        />
+        <h1 class="text-3xl font-semibold text-sky-300">
+          Telegram getWebhookInfo
+        </h1>
+        <p class="mt-2 text-sm text-slate-400">
+          Token: <span class="font-mono text-slate-200">{{ token }}</span>
+        </p>
+        <pre
+          class="mt-6 max-h-[70vh] overflow-auto rounded-2xl border border-slate-800/60 bg-slate-950/60 p-4 text-sm text-slate-200"
+        >
+{{ result | tojson(indent=2) }}</pre
+        >
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a
+            href="{{ request.url_for('new_bot_form') }}"
+            class="flex-1 rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-4 py-3 text-center text-sm font-medium text-indigo-200 hover:bg-indigo-500/20 sm:flex-none sm:px-5"
+          >
+            Back to bot form
+          </a>
+          <a
+            href="/"
+            class="flex-1 rounded-xl border border-slate-700/60 bg-slate-800/80 px-4 py-3 text-center text-sm font-medium text-slate-200 hover:bg-slate-800 sm:flex-none sm:px-5"
+          >
+            Back to homepage
+          </a>
+        </div>
+      </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      if (window.particlesJS) {
+        particlesJS("particles-js", {
+          particles: {
+            number: { value: 60, density: { enable: true, value_area: 800 } },
+            color: { value: "#38bdf8" },
+            shape: { type: "circle" },
+            opacity: { value: 0.25 },
+            size: { value: 3, random: true },
+            line_linked: {
+              enable: true,
+              distance: 150,
+              color: "#38bdf8",
+              opacity: 0.2,
+              width: 1,
+            },
+            move: {
+              enable: true,
+              speed: 2,
+              direction: "none",
+              random: false,
+              straight: false,
+              out_mode: "out",
+              attract: { enable: false },
+            },
+          },
+          interactivity: {
+            detect_on: "canvas",
+            events: {
+              onhover: { enable: true, mode: "repulse" },
+              onclick: { enable: true, mode: "push" },
+              resize: true,
+            },
+            modes: {
+              repulse: { distance: 120, duration: 0.4 },
+              push: { particles_nb: 4 },
+            },
+          },
+          retina_detect: true,
+        });
+      }
+    </script>
+  </body>
+</html>

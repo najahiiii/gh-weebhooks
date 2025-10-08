@@ -24,6 +24,9 @@ class User(Base):
         "Destination", back_populates="owner", cascade="all,delete"
     )
     subs = relationship("Subscription", back_populates="owner", cascade="all,delete")
+    sessions = relationship(
+        "AdminSession", back_populates="user", cascade="all,delete"
+    )
 
 
 class Bot(Base):
@@ -72,3 +75,16 @@ class Subscription(Base):
     owner = relationship("User", back_populates="subs")
     bot = relationship("Bot", back_populates="subs")
     destination = relationship("Destination", back_populates="subs")
+
+
+class AdminSession(Base):
+    """Web admin sessions."""
+
+    __tablename__ = "admin_sessions"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token = Column(String, unique=True, index=True)
+    created_at = Column(DateTime, default=now_wib)
+    expires_at = Column(DateTime, nullable=False)
+
+    user = relationship("User", back_populates="sessions")
