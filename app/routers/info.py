@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from textwrap import dedent
 
 from fastapi import APIRouter
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from app.config import settings
 from app.utils import CMD_HELP
@@ -76,12 +77,86 @@ def render_setup_text() -> str:
     ).strip()
 
 
-@router.get("/", response_class=PlainTextResponse)
+@router.get("/", response_class=HTMLResponse)
 def root():
-    """
-    Simple liveness endpoint.
-    """
-    return "Hello World!"
+    """Render a simple Tailwind-powered landing page for the service."""
+
+    return dedent(
+        """
+        <!doctype html>
+        <html lang="en" class="h-full bg-slate-950">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>GitHub → Telegram Notifier</title>
+            <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+          </head>
+          <body class="h-full text-slate-100">
+            <main class="flex min-h-screen flex-col items-center justify-center gap-12 px-6 py-16">
+              <header class="max-w-2xl text-center">
+                <p class="text-sm font-semibold uppercase tracking-wide text-sky-300">Webhook bridge</p>
+                <h1 class="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">GitHub → Telegram</h1>
+                <p class="mt-4 text-base text-slate-300 sm:text-lg">
+                  Receive GitHub notifications directly in Telegram chats. Explore the docs below to
+                  learn how to configure hooks, automate updates, and monitor delivery statistics.
+                </p>
+              </header>
+
+              <section class="grid w-full max-w-4xl gap-6 sm:grid-cols-3">
+                <a
+                  href="/help"
+                  class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/40
+                         transition hover:border-sky-400 hover:bg-slate-900/70"
+                >
+                  <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-slate-100">HTTP Help</h2>
+                    <span class="text-sky-300 transition group-hover:text-sky-200">→</span>
+                  </div>
+                  <p class="mt-3 text-sm text-slate-400">
+                    Browse the available REST endpoints and Telegram bot commands supported by the
+                    service.
+                  </p>
+                </a>
+
+                <a
+                  href="/setup"
+                  class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/40
+                         transition hover:border-emerald-400 hover:bg-slate-900/70"
+                >
+                  <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-slate-100">Setup Guide</h2>
+                    <span class="text-emerald-300 transition group-hover:text-emerald-200">→</span>
+                  </div>
+                  <p class="mt-3 text-sm text-slate-400">
+                    Follow the end-to-end instructions to configure environment variables, webhooks,
+                    and deployment.
+                  </p>
+                </a>
+
+                <a
+                  href="/stats"
+                  class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/40
+                         transition hover:border-fuchsia-400 hover:bg-slate-900/70"
+                >
+                  <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-slate-100">Delivery Stats</h2>
+                    <span class="text-fuchsia-300 transition group-hover:text-fuchsia-200">→</span>
+                  </div>
+                  <p class="mt-3 text-sm text-slate-400">
+                    Inspect current webhook usage, delivery counts, and health metrics (admin access
+                    may be required).
+                  </p>
+                </a>
+              </section>
+
+              <footer class="text-xs text-slate-500">
+                &copy; {year} <a href="https://github.com/najahiiii/gh-weebhooks">gh-weebhooks</a>.
+              </footer>
+            </main>
+          </body>
+        </html>
+        """
+    ).format(year=datetime.now().year)
 
 
 @router.get("/help", response_class=PlainTextResponse)
