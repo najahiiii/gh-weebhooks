@@ -86,6 +86,115 @@ def root():
     help_text = escape(HTTP_HELP_TEXT)
     setup_text = escape(render_setup_text())
 
+    needs_stats_key = bool(settings.admin_http_key)
+
+    if needs_stats_key:
+        stats_button = dedent(
+            """
+            <button
+              type="button"
+              data-open-modal="stats-key"
+              class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 text-left shadow-lg shadow-slate-950/40
+                     transition hover:border-violet-400 hover:bg-slate-900/70 focus-visible:outline focus-visible:outline-2
+                     focus-visible:outline-offset-2 focus-visible:outline-violet-400"
+            >
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-slate-100">Stats</h2>
+                <span class="text-violet-300 transition group-hover:text-violet-200">→</span>
+              </div>
+              <p class="mt-3 text-sm text-slate-400">
+                View aggregate usage insights after providing the required admin key.
+              </p>
+            </button>
+            """
+        ).strip()
+    else:
+        stats_button = dedent(
+            """
+            <a
+              href="/stats"
+              class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 text-left shadow-lg shadow-slate-950/40
+                     transition hover:border-violet-400 hover:bg-slate-900/70 focus-visible:outline focus-visible:outline-2
+                     focus-visible:outline-offset-2 focus-visible:outline-violet-400"
+            >
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-slate-100">Stats</h2>
+                <span class="text-violet-300 transition group-hover:text-violet-200">→</span>
+              </div>
+              <p class="mt-3 text-sm text-slate-400">
+                Explore aggregated usage metrics for users, bots, and destinations.
+              </p>
+            </a>
+            """
+        ).strip()
+
+
+    stats_modal_html = (
+        dedent(
+            """
+            <div
+              id="modal-stats-key"
+              class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4 py-10"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div class="relative flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/60">
+                <div class="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6 py-4">
+                  <h3 class="text-lg font-semibold text-slate-100">Enter Admin Key</h3>
+                  <button
+                    type="button"
+                    class="rounded-md p-1 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-200"
+                    data-close-modal
+                    aria-label="Close Stats Access"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <form class="space-y-4 bg-slate-950/60 px-6 py-6" action="/stats" method="get">
+                  <p class="text-sm text-slate-300">Provide the configured admin key to access the statistics dashboard.</p>
+                  <label class="block text-sm font-medium text-slate-200" for="stats-key-input">
+                    Admin key
+                    <input
+                      id="stats-key-input"
+                      name="key"
+                      type="password"
+                      required
+                      class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-400/40"
+                      placeholder="Paste admin key"
+                      data-initial-focus
+                    />
+                  </label>
+                  <div class="flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                      data-close-modal
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      class="rounded-lg bg-violet-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-300"
+                    >
+                      View stats
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            """
+        ).strip()
+        if needs_stats_key
+        else ""
+    )
+    
+    
+    stats_modal_map_entries = (
+        "                ['stats-key', document.getElementById('modal-stats-key')],\n"
+        if needs_stats_key
+        else ""
+    )
+
     template = Template(
         dedent(
             """
@@ -108,7 +217,7 @@ def root():
                 </p>
               </header>
 
-              <section class="grid w-full max-w-4xl gap-6 sm:grid-cols-2">
+              <section class="grid w-full max-w-4xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <button
                   type="button"
                   data-open-modal="help"
@@ -142,6 +251,8 @@ def root():
                     and deployment.
                   </p>
                 </button>
+
+                $stats_button
               </section>
 
               <footer class="text-xs text-slate-500">
@@ -197,12 +308,15 @@ def root():
               </div>
             </div>
 
+            $stats_modal
+
             <script>
               const body = document.body;
               const openButtons = document.querySelectorAll('[data-open-modal]');
               const modals = new Map([
                 ['help', document.getElementById('modal-help')],
                 ['setup', document.getElementById('modal-setup')],
+$stats_modal_map_entries
               ]);
 
               function openModal(key) {
@@ -212,7 +326,12 @@ def root():
                 modal.classList.add('flex');
                 body.classList.add('overflow-hidden');
                 const closeButton = modal.querySelector('[data-close-modal]');
-                closeButton?.focus();
+                const initialFocus = modal.querySelector('[data-initial-focus]');
+                if (initialFocus) {
+                  initialFocus.focus();
+                } else {
+                  closeButton?.focus();
+                }
               }
 
               function closeModal(modal) {
@@ -264,6 +383,9 @@ def root():
         year=datetime.now().year,
         help_text=help_text,
         setup_text=setup_text,
+        stats_button=stats_button,
+        stats_modal=stats_modal_html,
+        stats_modal_map_entries=stats_modal_map_entries,
     )
 
 
