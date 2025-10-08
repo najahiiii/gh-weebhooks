@@ -16,6 +16,7 @@ class Settings:
 
     db_url: str = os.getenv("DB_URL", "sqlite:///./github_tg.sqlite3")
     public_base_url: str = os.getenv("PUBLIC_BASE_URL", "https://yourdomain.exe")
+    timezone: str = os.getenv("TIMEZONE", "Asia/Jakarta")
     admin_ids: frozenset[str] = frozenset(
         s.strip() for s in os.getenv("ADMIN_USER_IDS", "").split(",") if s.strip()
     )

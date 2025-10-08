@@ -80,6 +80,9 @@ PUBLIC_BASE_URL=https://yourdomain.exe
 
 # Comma-separated Telegram numeric user IDs who should be admins in the app
 ADMIN_USER_IDS=123456789,987654321
+
+# IANA time zone name for timestamps (falls back to Asia/Jakarta)
+TIMEZONE=Asia/Jakarta
 ```
 
 The app uses `python-dotenv` to load `.env` automatically.
@@ -209,8 +212,9 @@ curl -s https://yourdomain.exe/ | cat
 
 ## Time zone
 
-All timestamps are timezone-aware in WIB (Asia/Jakarta, UTC+7) via `zoneinfo`.
-When displaying times, `.isoformat()` includes the `+07:00` offset.
+All timestamps are timezone-aware using the configured `TIMEZONE`
+environment variable (defaults to Asia/Jakarta / UTC+7) via `zoneinfo`.
+When displaying times, `.isoformat()` includes the appropriate offset.
 
 ---
 
