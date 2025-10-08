@@ -332,6 +332,22 @@ def _build_main_menu(ctx: CommandContext) -> dict[str, Any]:
     return {"inline_keyboard": buttons}
 
 
+def _subscriptions_markup(subs: list[Subscription]) -> dict[str, Any]:
+    keyboard = [
+        [
+            {
+                "text": f"#{sub.id} {sub.repo}",
+                "callback_data": _callback_payload("/subinfo", arg=str(sub.id)),
+            }
+        ]
+        for sub in subs
+    ]
+    keyboard.append(
+        [{"text": "Back to menu", "callback_data": _callback_payload("/menu")}]
+    )
+    return {"inline_keyboard": keyboard}
+
+
 async def _send_main_menu(ctx: CommandContext, *, heading: str | None = None) -> None:
     greeting = heading or f"Hi {ctx.display_name} 👋"
     if ctx.is_owner or ctx.user.is_admin:
@@ -619,14 +635,69 @@ async def _handle_listsubs(ctx: CommandContext, _arg: str) -> None:
     if not subs:
         await _menu_response(ctx, "📭 No subscriptions yet", "Create one to receive GitHub updates.")
         return
-    body = [
-        (
-            f"• id={_code(sub.id)} repo={_code(sub.repo)} "
-            f"events={_esc(sub.events_csv)} hook={_code('/wh/' + sub.hook_id)}"
+    message = _compose_message(
+        "📡 Your subscriptions",
+        "Pick one below to view its details or unsubscribe.",
+        include_footer=False,
+    )
+    await ctx.reply(
+        message,
+        markup=_subscriptions_markup(subs),
+        auto_split=False,
+        prefer_edit=True,
+    )
+
+
+async def _handle_subinfo(ctx: CommandContext, arg: str) -> None:
+    if not arg or not arg.isdigit():
+        await _handle_listsubs(ctx, "")
+        return
+    sub = (
+        ctx.db.query(Subscription)
+        .filter_by(id=int(arg), owner_user_id=ctx.user.id)
+        .first()
+    )
+    if not sub:
+        await _menu_response(
+            ctx,
+            "❓ Subscription not found",
+            "Try selecting a subscription from the list again.",
         )
-        for sub in subs
+        return
+    body = [
+        f"ID: {_code(sub.id)}",
+        f"Repository: {_code(sub.repo)}",
+        f"Events: {_esc(sub.events_csv)}",
+        f"Hook: {_code('/wh/' + sub.hook_id)}",
     ]
-    await _menu_response(ctx, "📡 Your subscriptions", body)
+    markup = {
+        "inline_keyboard": [
+            [
+                {
+                    "text": "Unsubscribe",
+                    "callback_data": _callback_payload("/unsubscribe", arg=str(sub.id)),
+                }
+            ],
+            [
+                {
+                    "text": "Back to subscriptions",
+                    "callback_data": _callback_payload("/listsubs"),
+                }
+            ],
+            [
+                {
+                    "text": "Back to menu",
+                    "callback_data": _callback_payload("/menu"),
+                }
+            ],
+        ]
+    }
+    await ctx.reply(
+        _compose_message("📡 Subscription details", body, include_footer=False),
+        markup=markup,
+        auto_split=False,
+        prefer_edit=True,
+    )
 
 
 async def _handle_unsubscribe(ctx: CommandContext, arg: str) -> None:
@@ -845,6 +916,7 @@ COMMAND_HANDLERS: dict[str, Callable[[CommandContext, str], Awaitable[None]]] = 
     "/usedest": _handle_usedest,
     "/subscribe": _handle_subscribe,
     "/listsubs": _handle_listsubs,
+    "/subinfo": _handle_subinfo,
     "/unsubscribe": _handle_unsubscribe,
     "/testdest": _handle_testdest,
     "/whoami": _handle_whoami,
