@@ -78,40 +78,16 @@
   </head>
   <body class="min-h-screen bg-slate-950 text-slate-100">
     <div id="particles-js" aria-hidden="true"></div>
-    <main class="content-wrapper mx-auto w-full max-w-6xl px-6 py-12">
-      <header
-        class="mb-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div class="flex items-start gap-3">
-          <img
-            src="{{ request.url_for('static', path='images/favicon.svg') }}"
-            alt="GitHub → Telegram Notifier logo"
-            class="mt-1 h-10 w-10"
-          />
-          <div>
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-500">
-              gh-weebhooks
-            </p>
-            <h1 class="text-3xl font-semibold text-slate-50">
-              Stats Dashboard
-            </h1>
-            <p class="text-sm text-slate-400">
-              Aggregate metrics and recent activity. Secrets remain hidden.
-            </p>
-          </div>
-        </div>
-        <div class="flex gap-2 text-xs text-slate-500">
-          <a
-            href="/help"
-            class="rounded-xl border border-slate-700/50 px-3 py-1.5 text-slate-300 hover:border-slate-500"
-            >Help</a
-          >
-          <a
-            href="/setup"
-            class="rounded-xl border border-slate-700/50 px-3 py-1.5 text-slate-300 hover:border-slate-500"
-            >Setup</a
-          >
-        </div>
+    <div class="content-wrapper flex min-h-screen flex-col">
+      {% include "partials/navbar.html" %}
+      <main class="mx-auto flex-1 w-full max-w-6xl px-6 py-12">
+      <header class="mb-10 space-y-2">
+        <h1 class="text-3xl font-semibold text-slate-50">
+          Stats Dashboard
+        </h1>
+        <p class="text-sm text-slate-400">
+          Aggregate metrics and recent activity. Secrets remain hidden.
+        </p>
       </header>
 
       <section class="grid gap-4 md:grid-cols-4">
@@ -272,7 +248,8 @@
           </table>
         </div>
       </section>
-    </main>
+      </main>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script>
       if (window.particlesJS) {

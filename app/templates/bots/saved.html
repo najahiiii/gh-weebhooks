@@ -77,9 +77,9 @@
   </head>
   <body class="h-full text-slate-100">
     <div id="particles-js" aria-hidden="true"></div>
-    <main
-      class="content-wrapper flex min-h-screen items-center justify-center px-4 py-16"
-    >
+    <div class="content-wrapper flex min-h-screen flex-col">
+      {% include "partials/navbar.html" %}
+      <main class="flex flex-1 items-center justify-center px-4 py-16">
       <div
         class="w-full max-w-2xl rounded-3xl border border-slate-800/60 bg-slate-900/80 p-10 shadow-2xl shadow-slate-950/50 backdrop-blur"
       >
@@ -160,7 +160,8 @@
           to begin using the in-chat menu.
         </p>
       </div>
-    </main>
+      </main>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script>
       if (window.particlesJS) {

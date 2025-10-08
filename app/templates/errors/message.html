@@ -75,29 +75,32 @@
       }
     </style>
   </head>
-  <body
-    class="flex h-full items-center justify-center bg-slate-950 px-4 py-12 text-slate-100"
-  >
+  <body class="h-full bg-slate-950 text-slate-100">
     <div id="particles-js" aria-hidden="true"></div>
-    <div
-      class="content-wrapper w-full max-w-lg rounded-3xl border border-slate-800/60 bg-slate-900/80 p-10 shadow-2xl shadow-slate-950/40 backdrop-blur"
-    >
-      <img
-        src="{{ request.url_for('static', path='images/favicon.svg') }}"
-        alt="GitHub → Telegram Notifier logo"
-        class="mx-auto mb-4 h-12 w-12"
-      />
-      <p class="text-xs uppercase tracking-wide text-slate-500">
-        {{ status_code }}
-      </p>
-      <h1 class="mt-2 text-3xl font-semibold text-slate-50">{{ title }}</h1>
-      <p class="mt-4 text-sm text-slate-300">{{ message }}</p>
-      <a
-        href="/"
-        class="mt-8 inline-flex items-center gap-2 rounded-xl border border-slate-700/40 bg-slate-800/60 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
-      >
-        ← Back to homepage
-      </a>
+    <div class="content-wrapper flex min-h-screen flex-col">
+      {% include "partials/navbar.html" %}
+      <main class="flex flex-1 items-center justify-center px-4 py-12">
+        <div
+          class="w-full max-w-lg rounded-3xl border border-slate-800/60 bg-slate-900/80 p-10 shadow-2xl shadow-slate-950/40 backdrop-blur"
+        >
+          <img
+            src="{{ request.url_for('static', path='images/favicon.svg') }}"
+            alt="GitHub → Telegram Notifier logo"
+            class="mx-auto mb-4 h-12 w-12"
+          />
+          <p class="text-xs uppercase tracking-wide text-slate-500">
+            {{ status_code }}
+          </p>
+          <h1 class="mt-2 text-3xl font-semibold text-slate-50">{{ title }}</h1>
+          <p class="mt-4 text-sm text-slate-300">{{ message }}</p>
+          <a
+            href="/"
+            class="mt-8 inline-flex items-center gap-2 rounded-xl border border-slate-700/40 bg-slate-800/60 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
+          >
+            ← Back to homepage
+          </a>
+        </div>
+      </main>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script>
