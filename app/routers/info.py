@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape
+from string import Template
 from textwrap import dedent
 
 from fastapi import APIRouter
@@ -81,8 +83,12 @@ def render_setup_text() -> str:
 def root():
     """Render a simple Tailwind-powered landing page for the service."""
 
-    return dedent(
-        """
+    help_text = escape(HTTP_HELP_TEXT)
+    setup_text = escape(render_setup_text())
+
+    template = Template(
+        dedent(
+            """
         <!doctype html>
         <html lang="en" class="h-full bg-slate-950">
           <head>
@@ -102,11 +108,13 @@ def root():
                 </p>
               </header>
 
-              <section class="grid w-full max-w-4xl gap-6 sm:grid-cols-3">
-                <a
-                  href="/help"
-                  class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/40
-                         transition hover:border-sky-400 hover:bg-slate-900/70"
+              <section class="grid w-full max-w-4xl gap-6 sm:grid-cols-2">
+                <button
+                  type="button"
+                  data-open-modal="help"
+                  class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 text-left shadow-lg shadow-slate-950/40
+                         transition hover:border-sky-400 hover:bg-slate-900/70 focus-visible:outline focus-visible:outline-2
+                         focus-visible:outline-offset-2 focus-visible:outline-sky-400"
                 >
                   <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-slate-100">HTTP Help</h2>
@@ -116,12 +124,14 @@ def root():
                     Browse the available REST endpoints and Telegram bot commands supported by the
                     service.
                   </p>
-                </a>
+                </button>
 
-                <a
-                  href="/setup"
-                  class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/40
-                         transition hover:border-emerald-400 hover:bg-slate-900/70"
+                <button
+                  type="button"
+                  data-open-modal="setup"
+                  class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 text-left shadow-lg shadow-slate-950/40
+                         transition hover:border-emerald-400 hover:bg-slate-900/70 focus-visible:outline focus-visible:outline-2
+                         focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
                 >
                   <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-slate-100">Setup Guide</h2>
@@ -131,32 +141,130 @@ def root():
                     Follow the end-to-end instructions to configure environment variables, webhooks,
                     and deployment.
                   </p>
-                </a>
-
-                <a
-                  href="/stats"
-                  class="group rounded-xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-950/40
-                         transition hover:border-fuchsia-400 hover:bg-slate-900/70"
-                >
-                  <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-slate-100">Delivery Stats</h2>
-                    <span class="text-fuchsia-300 transition group-hover:text-fuchsia-200">→</span>
-                  </div>
-                  <p class="mt-3 text-sm text-slate-400">
-                    Inspect current webhook usage, delivery counts, and health metrics (admin access
-                    may be required).
-                  </p>
-                </a>
+                </button>
               </section>
 
               <footer class="text-xs text-slate-500">
-                &copy; {year} <a href="https://github.com/najahiiii/gh-weebhooks">gh-weebhooks</a>.
+                &copy; $year <a href="https://github.com/najahiiii/gh-weebhooks">gh-weebhooks</a>.
               </footer>
             </main>
+
+            <div
+              id="modal-help"
+              class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4 py-10"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div class="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/60">
+                <div class="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6 py-4">
+                  <h3 class="text-lg font-semibold text-slate-100">HTTP Help</h3>
+                  <button
+                    type="button"
+                    class="rounded-md p-1 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-200"
+                    data-close-modal
+                    aria-label="Close HTTP Help"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div class="max-h-[70vh] overflow-y-auto bg-slate-950/60 px-6 py-6">
+                  <pre class="whitespace-pre-wrap text-sm text-slate-200">$help_text</pre>
+                </div>
+              </div>
+            </div>
+
+            <div
+              id="modal-setup"
+              class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 px-4 py-10"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div class="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl shadow-slate-950/60">
+                <div class="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-6 py-4">
+                  <h3 class="text-lg font-semibold text-slate-100">Setup Guide</h3>
+                  <button
+                    type="button"
+                    class="rounded-md p-1 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-200"
+                    data-close-modal
+                    aria-label="Close Setup Guide"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div class="max-h-[70vh] overflow-y-auto bg-slate-950/60 px-6 py-6">
+                  <pre class="whitespace-pre-wrap text-sm text-slate-200">$setup_text</pre>
+                </div>
+              </div>
+            </div>
+
+            <script>
+              const body = document.body;
+              const openButtons = document.querySelectorAll('[data-open-modal]');
+              const modals = new Map([
+                ['help', document.getElementById('modal-help')],
+                ['setup', document.getElementById('modal-setup')],
+              ]);
+
+              function openModal(key) {
+                const modal = modals.get(key);
+                if (!modal) return;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                body.classList.add('overflow-hidden');
+                const closeButton = modal.querySelector('[data-close-modal]');
+                closeButton?.focus();
+              }
+
+              function closeModal(modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                body.classList.remove('overflow-hidden');
+              }
+
+              openButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                  openModal(button.dataset.openModal);
+                });
+              });
+
+              document.querySelectorAll('[data-close-modal]').forEach((button) => {
+                button.addEventListener('click', () => {
+                  const modal = button.closest('[role="dialog"]');
+                  if (modal) {
+                    closeModal(modal);
+                  }
+                });
+              });
+
+              modals.forEach((modal) => {
+                modal.addEventListener('click', (event) => {
+                  if (event.target === modal) {
+                    closeModal(modal);
+                  }
+                });
+              });
+
+              window.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                  modals.forEach((modal) => {
+                    if (!modal.classList.contains('hidden')) {
+                      closeModal(modal);
+                    }
+                  });
+                }
+              });
+            </script>
           </body>
         </html>
         """
-    ).format(year=datetime.now().year)
+        )
+    )
+
+    return template.substitute(
+        year=datetime.now().year,
+        help_text=help_text,
+        setup_text=setup_text,
+    )
 
 
 @router.get("/help", response_class=PlainTextResponse)
