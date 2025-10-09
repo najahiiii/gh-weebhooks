@@ -13,7 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.models import AdminSession
-from app.routers import admin_ui, auth, bots, gh, info, setup, stats
+from app.routers import admin_ui, auth, bots, gh, info, setup, stats, tg_sink
 from app.timezone import TZ, now_wib
 
 Base.metadata.create_all(engine)
@@ -90,3 +90,4 @@ app.include_router(gh.router)
 app.include_router(bots.router)
 app.include_router(setup.router)
 app.include_router(stats.router)
+app.include_router(tg_sink.router)
