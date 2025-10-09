@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Optional
 from uuid import uuid4
 
+import httpx
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import SessionLocal
 from app.models import Bot, Destination, Subscription, User
+from app.services.telegram import HTTP_TIMEOUT_SHORT_SECONDS, TELEGRAM_API_BASE
 from app.templating import templates
 
 router = APIRouter(prefix="/admin", tags=["admin-ui"])
@@ -19,6 +21,38 @@ router = APIRouter(prefix="/admin", tags=["admin-ui"])
 
 def _get_db() -> Session:
     return SessionLocal()
+
+
+_BOT_USERNAME_CACHE: dict[int, str] = {}
+
+
+def _fetch_bot_username(token: str) -> Optional[str]:
+    if not token:
+        return None
+    url = f"{TELEGRAM_API_BASE}/bot{token}/getMe"
+    try:
+        with httpx.Client(timeout=HTTP_TIMEOUT_SHORT_SECONDS) as client:
+            resp = client.get(url)
+        data = resp.json()
+        if resp.status_code >= 300 or not data.get("ok"):
+            return None
+        username = data.get("result", {}).get("username")
+        if username:
+            return f"@{username}" if not username.startswith("@") else username
+        name = data.get("result", {}).get("first_name")
+        return name
+    except Exception:  # pragma: no cover - network failures are non-fatal
+        return None
+
+
+def _bot_display(bot: Bot) -> str:
+    cached = _BOT_USERNAME_CACHE.get(bot.id)
+    if cached is not None:
+        return cached or bot.bot_id or "unknown"
+    username = _fetch_bot_username(bot.token)
+    label = username or bot.bot_id or "unknown"
+    _BOT_USERNAME_CACHE[bot.id] = username or ""
+    return label
 
 
 def _require_admin(request: Request, db: Session) -> User:
@@ -200,13 +234,39 @@ def subscriptions_page(request: Request):
             .all()
         )
         base_url = settings.public_base_url.rstrip("/")
+
+        bot_options = []
+        for bot in bots:
+            label = _bot_display(bot)
+            select_label = f"{label} ({bot.bot_id})" if label else bot.bot_id
+            bot_options.append({"id": bot.id, "label": select_label})
+
+        subscription_rows = []
+        for sub in subscriptions:
+            dest_label = (
+                sub.destination.title or sub.destination.chat_id
+                if sub.destination
+                else "missing destination"
+            )
+            bot_label = _bot_display(sub.bot) if sub.bot else "unknown"
+            subscription_rows.append(
+                {
+                    "id": sub.id,
+                    "repo": sub.repo,
+                    "events": sub.events_csv or "*",
+                    "destination": dest_label,
+                    "bot_label": bot_label,
+                    "payload_url": f"{base_url}/wh/{sub.hook_id}",
+                    "secret": sub.secret,
+                }
+            )
         return templates.TemplateResponse(
             "admin/subscriptions.html",
             {
                 "request": request,
-                "subscriptions": subscriptions,
+                "subscription_rows": subscription_rows,
                 "destinations": destinations,
-                "bots": bots,
+                "bot_options": bot_options,
                 "public_base_url": base_url,
             },
         )

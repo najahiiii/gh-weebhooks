@@ -91,8 +91,8 @@
                 <label class="block text-xs font-medium uppercase tracking-wide text-slate-400">Bot</label>
                 <select name="bot_id" required class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
                   <option value="" disabled selected>Select bot…</option>
-                  {% for bot in bots %}
-                  <option value="{{ bot.id }}">{{ bot.bot_id }} (ID {{ bot.id }})</option>
+                  {% for bot in bot_options %}
+                  <option value="{{ bot.id }}">{{ bot.label }}</option>
                   {% endfor %}
                 </select>
               </div>
@@ -138,19 +138,21 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-800/70 text-slate-200">
-                {% for sub in subscriptions %}
+                {% for sub in subscription_rows %}
                 <tr class="hover:bg-slate-900/60">
                   <td class="px-4 py-3">
                     <span class="font-semibold text-slate-100">{{ sub.repo }}</span>
-                    <p class="text-xs text-slate-500">ID {{ sub.id }} • Bot {{ sub.bot.bot_id if sub.bot else 'unknown' }}</p>
+                    <p class="text-xs text-slate-500">
+                      ID {{ sub.id }} • Bot {{ sub.bot_label }}
+                    </p>
                   </td>
-                  <td class="px-4 py-3 text-xs text-slate-400">{{ sub.events_csv or '*' }}</td>
+                  <td class="px-4 py-3 text-xs text-slate-400">{{ sub.events }}</td>
                   <td class="px-4 py-3 text-sm text-slate-200">
-                    {{ sub.destination.title or sub.destination.chat_id if sub.destination else 'missing destination' }}
+                    {{ sub.destination }}
                   </td>
                   <td class="px-4 py-3 text-xs text-slate-400">
                     <p>Payload URL:</p>
-                    <code class="mt-1 block break-all rounded bg-slate-800 px-2 py-1 text-xs text-slate-200">{{ public_base_url }}/wh/{{ sub.hook_id }}</code>
+                    <code class="mt-1 block break-all rounded bg-slate-800 px-2 py-1 text-xs text-slate-200">{{ sub.payload_url }}</code>
                     <p class="mt-2">Secret:</p>
                     <code class="mt-1 block break-all rounded bg-slate-800 px-2 py-1 text-xs text-slate-200">{{ sub.secret }}</code>
                   </td>
