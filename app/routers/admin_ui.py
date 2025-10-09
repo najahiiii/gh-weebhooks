@@ -137,6 +137,7 @@ def admin_dashboard(request: Request):
                 "public_base_url": settings.public_base_url.rstrip("/"),
                 "notice_message": _NOTICE_MESSAGES.get(notice_code or ""),
                 "error_message": _ERROR_MESSAGES.get(error_code or ""),
+                "admin_http_key": settings.admin_http_key,
             },
         )
 

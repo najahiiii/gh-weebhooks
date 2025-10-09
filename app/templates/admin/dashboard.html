@@ -186,12 +186,33 @@
                     </td>
                     <td class="px-4 py-3 text-xs text-slate-300">
                       <div class="flex flex-wrap gap-2">
-                        <a
-                          href="{{ request.url_for('bot_info') }}?token={{ bot.token }}"
-                          class="inline-flex items-center rounded-full border border-slate-600/60 px-3 py-1 font-medium text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
-                        >
-                          View webhook
-                        </a>
+                        <details class="group inline-block">
+                          <summary class="inline-flex cursor-pointer items-center rounded-full border border-slate-600/60 px-3 py-1 font-medium text-slate-200 transition hover:border-sky-400 hover:text-sky-200">
+                            View webhook
+                          </summary>
+                          <div class="mt-2 space-y-2 rounded-xl border border-slate-700/60 bg-slate-900/80 p-3 text-left text-[0.65rem] text-slate-200 shadow-inner shadow-slate-950/40">
+                            <dl class="space-y-1">
+                              <div>
+                                <dt class="font-semibold text-slate-100">Endpoint</dt>
+                                <dd>
+                                  <code class="mt-1 block break-all rounded bg-slate-950/70 px-2 py-1 text-xs text-slate-100">{{ public_base_url }}/tg/{{ bot.bot_id }}/{{ bot.token }}</code>
+                                </dd>
+                              </div>
+                              <div>
+                                <dt class="font-semibold text-slate-100">Admin key</dt>
+                                <dd class="text-slate-400">
+                                  {{ admin_http_key or "Not required" }}
+                                </dd>
+                              </div>
+                            </dl>
+                            <a
+                              href="{{ request.url_for('bot_info') }}?token={{ bot.token }}"
+                              class="inline-flex items-center rounded-full border border-slate-600/60 px-3 py-1 font-medium text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
+                            >
+                              Inspect via Telegram API
+                            </a>
+                          </div>
+                        </details>
                         <details class="group inline-block">
                           <summary class="inline-flex cursor-pointer items-center rounded-full border border-amber-400/40 px-3 py-1 font-medium text-amber-200 transition hover:border-amber-400/70 hover:text-amber-100">
                             Rotate token
