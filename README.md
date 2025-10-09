@@ -91,64 +91,32 @@ The app uses `python-dotenv` to load `.env` automatically.
 
 ## Telegram setup
 
-This project is **multi-bot** per user. Each user can connect their own bot token.
+This project is **multi-bot** per user. Each administrator can register their own bot token via the web UI.
 
-1) Create a Telegram bot via BotFather and get the bot token (e.g. `123456789:AA...`).
+1. Create a Telegram bot via BotFather and note the token (e.g. `123456789:AA...`).
+2. Set the **Telegram webhook** for that bot to point to this app:
 
-2) Set the **Telegram webhook** for that bot to point to this app.
-   Replace `{bot_id}` and `{token}` with your bot’s values:
+   ```text
+   https://yourdomain.exe/tg/{bot_id}/{token}
+   ```
 
-    ```text
-    https://yourdomain.exe/tg/{bot_id}/{token}
-    ```
+   `{bot_id}` is the numeric part before `:` in the token. Example: token `123456789:AA...` → webhook `https://yourdomain.exe/tg/123456789/123456789:AA...`.
 
-    - `{bot_id}` is the numeric part before `:` in the token.
-    - Example:
-    - Token: `123456789:AA...`
-    - Webhook URL: `https://yourdomain.exe/tg/123456789/123456789:AA...`
-
-3) Interact with your bot in Telegram and run `/start` to register yourself.
+The bot only needs to deliver outbound messages. Chatting with it is no longer required.
 
 ---
 
-## Basic commands (Telegram chat)
+## Admin web UI
 
-```text
-/start
-/help
+All management now happens in the browser:
 
-# Manage bots
-/connectbot <token>
-/listbot
+1. Visit `/auth/login` and authenticate with your Telegram account.
+2. Use **Add Bot** to store bot tokens and automatically configure their webhooks.
+3. Register destinations (chat IDs, topics) via **Admin → Destinations**.
+4. Create subscriptions under **Admin → Subscriptions** to obtain GitHub webhook URLs and secrets.
+5. Monitor deliveries from **Stats**.
 
-# Destinations (PM/Group/Channel; Group Topic supported)
-# Save current chat (and current topic if present)
-# or specify <chat_id> and optional :<topic_id>
-/adddest here [name]
-/adddest <chat_id> [name]
-/adddest <chat_id>:<topic_id> [name]
-/listdest
-/usedest <dest_id>
-/testdest
-
-# GitHub subscriptions
-/subscribe <owner/repo> [event1,event2,...]
-/listsubs
-/unsubscribe <id>
-
-# Admin (app-level)
-/whoami
-/promote <telegram_user_id>
-/demote <telegram_user_id>
-/listusers
-/listsubs_all
-/checkdest <dest_id>
-```
-
-Notes:
-
-- For channels, add your bot as administrator of the channel.
-- For groups, add your bot into the group; for Group Topics, either post in a topic and run `/adddest here`, or save with `<chat_id>:<topic_id>`.
+Each administrator can maintain multiple bots, destinations, and repository subscriptions.
 
 ---
 

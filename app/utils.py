@@ -5,27 +5,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 
-CMD_HELP = """Commands:
-/start – register yourself and check role
-/adddest <chat_id> [name] – add a destination (PM/Group/Channel)
-/adddest here [name] – store the current chat/topic
-/adddest <chat_id>:<topic_id> [name] – combined format
-/listdest – list your destinations
-/usedest <dest_id> – set the default destination
-/connectbot <token> – link your Telegram bot
-/listbot – list your bots
-/subscribe <owner/repo> [event1,event2,...] – create a GitHub webhook subscription
-/listsubs – list your subscriptions
-/unsubscribe <id> – remove a subscription
+CMD_HELP = """Manage everything from the web UI:
+- Sign in via /auth/login in your browser.
+- Add bots from the Add Bot page and install their webhooks.
+- Register destinations and subscriptions under the Admin dashboard.
 
-# Admin:
-/whoami – show your role
-/promote <telegram_user_id> – promote a user to admin
-/demote <telegram_user_id> – demote a user
-/listusers – list every user
-/listsubs_all – list every subscription
-/checkdest <dest_id> – verify bot status in a chat
-"""
+The Telegram bot is outbound-only and no longer accepts chat commands."""
 
 
 def parse_bot_id_from_token(token: str) -> str | None:

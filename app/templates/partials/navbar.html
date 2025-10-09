@@ -12,13 +12,14 @@
     </div>
     <div class="flex flex-wrap items-center justify-center gap-2 text-xs font-medium uppercase tracking-wide">
       <a href="{{ request.url_for('root') }}" class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200">Home</a>
+      <a href="{{ request.url_for('http_help') }}" class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200">Help</a>
+      <a href="{{ request.url_for('http_setup') }}" class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200">Setup</a>
       {% if user and user.is_admin %}
       <a href="{{ request.url_for('admin_dashboard') }}" class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200">dashboard</a>
       <a href="{{ request.url_for('admin_destinations') }}" class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200">destinations</a>
       <a href="{{ request.url_for('admin_subscriptions') }}" class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200">subscriptions</a>
       <a href="{{ request.url_for('stats_page') }}" class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200">stats</a>
       <a href="{{ request.url_for('new_bot_form') }}" class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200">add bot</a>
-      <a href="{{ request.url_for('setup_main_bot_form') }}" class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200">setup main bot</a>
       {% endif %}
       {% if user and user.is_admin %}
       <form method="post" action="{{ request.url_for('auth_logout') }}" class="flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-emerald-100 transition hover:border-emerald-400 hover:text-emerald-100">

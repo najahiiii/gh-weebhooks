@@ -76,6 +76,10 @@ def render_setup_text() -> str:
     Payload URL: {base}/wh/{{hook_id}}
     Content type: application/json
     Secret: (dari /subscribe)
+
+    6) Admin web UI
+    -----------------
+    Login ke {base}/auth/login kemudian kelola bot, destinasi, dan subscription langsung dari dashboard.
     """
     ).strip()
 
