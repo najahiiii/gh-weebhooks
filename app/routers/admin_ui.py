@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 from uuid import uuid4
+from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -13,8 +14,13 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import SessionLocal
 from app.models import Bot, Destination, Subscription, User
-from app.services.telegram import HTTP_TIMEOUT_SHORT_SECONDS, TELEGRAM_API_BASE
+from app.services.telegram import (
+    HTTP_TIMEOUT_SHORT_SECONDS,
+    TELEGRAM_API_BASE,
+    set_telegram_webhook,
+)
 from app.templating import templates
+from app.utils import parse_bot_id_from_token
 
 router = APIRouter(prefix="/admin", tags=["admin-ui"])
 
@@ -24,6 +30,44 @@ def _get_db() -> Session:
 
 
 _BOT_USERNAME_CACHE: dict[int, str] = {}
+
+
+_NOTICE_MESSAGES: dict[str, str] = {
+    "bot_deleted": "Bot removed. Existing webhooks will no longer reach this service.",
+    "bot_token_updated": "Bot token updated and webhook refreshed.",
+    "destination_updated": "Destination settings saved.",
+    "subscription_updated": "Subscription updated.",
+}
+
+_ERROR_MESSAGES: dict[str, str] = {
+    "bot_has_subs": "Remove subscriptions linked to this bot before deleting it.",
+    "bot_token_invalid": "Provide a valid Telegram bot token.",
+    "bot_token_mismatch": "The supplied token belongs to a different bot.",
+    "bot_webhook_failed": "Token saved, but refreshing the Telegram webhook failed. Check the logs.",
+    "destination_invalid_chat": "Chat ID is required to update a destination.",
+    "destination_topic_invalid": "Topic ID must be numeric.",
+    "subscription_invalid_repo": "Repository must be in the owner/repo format.",
+    "subscription_destination_missing": "Selected destination was not found.",
+    "subscription_bot_missing": "Selected bot was not found.",
+}
+
+
+def _redirect_with_feedback(
+    request: Request,
+    endpoint: str,
+    *,
+    notice: Optional[str] = None,
+    error: Optional[str] = None,
+) -> RedirectResponse:
+    params: dict[str, str] = {}
+    if notice:
+        params["notice"] = notice
+    if error:
+        params["error"] = error
+    url = str(request.url_for(endpoint))
+    if params:
+        url = f"{url}?{urlencode(params)}"
+    return RedirectResponse(url=url, status_code=303)
 
 
 def _fetch_bot_username(token: str) -> Optional[str]:
@@ -81,6 +125,8 @@ def admin_dashboard(request: Request):
         subscriptions_count = (
             db.query(Subscription).filter(Subscription.owner_user_id == admin.id).count()
         )
+        notice_code = request.query_params.get("notice")
+        error_code = request.query_params.get("error")
         return templates.TemplateResponse(
             "admin/dashboard.html",
             {
@@ -89,12 +135,15 @@ def admin_dashboard(request: Request):
                 "destinations_count": destinations_count,
                 "subscriptions_count": subscriptions_count,
                 "public_base_url": settings.public_base_url.rstrip("/"),
+                "notice_message": _NOTICE_MESSAGES.get(notice_code or ""),
+                "error_message": _ERROR_MESSAGES.get(error_code or ""),
             },
         )
 
 
 @router.post("/bots/{bot_id}/delete", name="admin_delete_bot")
 def delete_bot(request: Request, bot_id: int):
+    bot_cache_key: Optional[int] = None
     with _get_db() as db:
         admin = _require_admin(request, db)
         bot = (
@@ -105,16 +154,69 @@ def delete_bot(request: Request, bot_id: int):
         if not bot:
             raise HTTPException(404, "Bot not found.")
         if bot.subs:
-            return RedirectResponse(
-                url=str(request.url_for("admin_dashboard")), status_code=303
+            return _redirect_with_feedback(
+                request, "admin_dashboard", error="bot_has_subs"
             )
         bot_cache_key = bot.id
         db.delete(bot)
         db.commit()
 
-    _BOT_USERNAME_CACHE.pop(bot_cache_key, None)
-    return RedirectResponse(
-        url=str(request.url_for("admin_dashboard")), status_code=303
+    if bot_cache_key is not None:
+        _BOT_USERNAME_CACHE.pop(bot_cache_key, None)
+    return _redirect_with_feedback(request, "admin_dashboard", notice="bot_deleted")
+
+
+@router.post("/bots/{bot_id}/token", name="admin_update_bot_token")
+async def update_bot_token(request: Request, bot_id: int, token: str = Form(...)):
+    token_value = (token or "").strip()
+    if not token_value:
+        return _redirect_with_feedback(
+            request, "admin_dashboard", error="bot_token_invalid"
+        )
+    parsed_bot_id = parse_bot_id_from_token(token_value)
+    if not parsed_bot_id:
+        return _redirect_with_feedback(
+            request, "admin_dashboard", error="bot_token_invalid"
+        )
+
+    bot_cache_key: Optional[int] = None
+    with _get_db() as db:
+        admin = _require_admin(request, db)
+        bot = (
+            db.query(Bot)
+            .filter(Bot.id == bot_id, Bot.owner_user_id == admin.id)
+            .first()
+        )
+        if not bot:
+            raise HTTPException(404, "Bot not found.")
+        if bot.bot_id != parsed_bot_id:
+            return _redirect_with_feedback(
+                request, "admin_dashboard", error="bot_token_mismatch"
+            )
+        bot.token = token_value
+        bot_cache_key = bot.id
+        db.commit()
+
+    if bot_cache_key is not None:
+        _BOT_USERNAME_CACHE.pop(bot_cache_key, None)
+
+    webhook_failed = False
+    try:
+        await set_telegram_webhook(token_value, parsed_bot_id, settings.public_base_url)
+    except HTTPException:
+        webhook_failed = True
+
+    if webhook_failed:
+        return _redirect_with_feedback(
+            request,
+            "admin_dashboard",
+            notice="bot_token_updated",
+            error="bot_webhook_failed",
+        )
+    return _redirect_with_feedback(
+        request,
+        "admin_dashboard",
+        notice="bot_token_updated",
     )
 
 
@@ -128,11 +230,15 @@ def destinations_page(request: Request):
             .order_by(Destination.id.desc())
             .all()
         )
+        notice_code = request.query_params.get("notice")
+        error_code = request.query_params.get("error")
         return templates.TemplateResponse(
             "admin/destinations.html",
             {
                 "request": request,
                 "destinations": destinations,
+                "notice_message": _NOTICE_MESSAGES.get(notice_code or ""),
+                "error_message": _ERROR_MESSAGES.get(error_code or ""),
             },
         )
 
@@ -177,6 +283,64 @@ def create_destination(
 
     return RedirectResponse(
         url=str(request.url_for("admin_destinations")), status_code=303
+    )
+
+
+@router.post(
+    "/destinations/{destination_id}/edit", name="admin_edit_destination"
+)
+def edit_destination(
+    request: Request,
+    destination_id: int,
+    chat_id: str = Form(...),
+    title: str = Form(""),
+    topic_id: str = Form(""),
+    is_default: Optional[str] = Form(None),
+):
+    chat_value = (chat_id or "").strip()
+    if not chat_value:
+        return _redirect_with_feedback(
+            request, "admin_destinations", error="destination_invalid_chat"
+        )
+    title_value = (title or "").strip()
+    topic_value: Optional[int] = None
+    topic_str = (topic_id or "").strip()
+    if topic_str:
+        try:
+            topic_value = int(topic_str)
+        except ValueError:
+            return _redirect_with_feedback(
+                request, "admin_destinations", error="destination_topic_invalid"
+            )
+
+    with _get_db() as db:
+        admin = _require_admin(request, db)
+        destination = (
+            db.query(Destination)
+            .filter(
+                Destination.id == destination_id,
+                Destination.owner_user_id == admin.id,
+            )
+            .first()
+        )
+        if not destination:
+            raise HTTPException(404, "Destination not found.")
+
+        destination.chat_id = chat_value
+        destination.title = title_value
+        destination.topic_id = topic_value
+
+        if is_default:
+            db.query(Destination).filter(
+                Destination.owner_user_id == admin.id,
+                Destination.is_default.is_(True),
+            ).update({"is_default": False})
+            destination.is_default = True
+
+        db.commit()
+
+    return _redirect_with_feedback(
+        request, "admin_destinations", notice="destination_updated"
     )
 
 
@@ -283,8 +447,12 @@ def subscriptions_page(request: Request):
                     "bot_label": bot_label,
                     "payload_url": f"{base_url}/wh/{sub.hook_id}",
                     "secret": sub.secret,
+                    "destination_id": sub.destination_id,
+                    "bot_id": sub.bot_id,
                 }
             )
+        notice_code = request.query_params.get("notice")
+        error_code = request.query_params.get("error")
         return templates.TemplateResponse(
             "admin/subscriptions.html",
             {
@@ -293,6 +461,8 @@ def subscriptions_page(request: Request):
                 "destinations": destinations,
                 "bot_options": bot_options,
                 "public_base_url": base_url,
+                "notice_message": _NOTICE_MESSAGES.get(notice_code or ""),
+                "error_message": _ERROR_MESSAGES.get(error_code or ""),
             },
         )
 
@@ -348,6 +518,71 @@ def create_subscription(
 
     return RedirectResponse(
         url=str(request.url_for("admin_subscriptions")), status_code=303
+    )
+
+
+@router.post(
+    "/subscriptions/{subscription_id}/edit", name="admin_edit_subscription"
+)
+def edit_subscription(
+    request: Request,
+    subscription_id: int,
+    repo: str = Form(...),
+    events: str = Form(""),
+    destination_id: int = Form(...),
+    bot_id: int = Form(...),
+):
+    repo_value = (repo or "").strip()
+    if "/" not in repo_value:
+        return _redirect_with_feedback(
+            request, "admin_subscriptions", error="subscription_invalid_repo"
+        )
+    events_csv = (events or "").strip() or "*"
+
+    with _get_db() as db:
+        admin = _require_admin(request, db)
+        subscription = (
+            db.query(Subscription)
+            .filter(
+                Subscription.id == subscription_id,
+                Subscription.owner_user_id == admin.id,
+            )
+            .first()
+        )
+        if not subscription:
+            raise HTTPException(404, "Subscription not found.")
+
+        destination = (
+            db.query(Destination)
+            .filter(
+                Destination.id == destination_id,
+                Destination.owner_user_id == admin.id,
+            )
+            .first()
+        )
+        if not destination:
+            return _redirect_with_feedback(
+                request, "admin_subscriptions", error="subscription_destination_missing"
+            )
+
+        bot = (
+            db.query(Bot)
+            .filter(Bot.id == bot_id, Bot.owner_user_id == admin.id)
+            .first()
+        )
+        if not bot:
+            return _redirect_with_feedback(
+                request, "admin_subscriptions", error="subscription_bot_missing"
+            )
+
+        subscription.repo = repo_value
+        subscription.events_csv = events_csv
+        subscription.destination_id = destination.id
+        subscription.bot_id = bot.id
+        db.commit()
+
+    return _redirect_with_feedback(
+        request, "admin_subscriptions", notice="subscription_updated"
     )
 
 

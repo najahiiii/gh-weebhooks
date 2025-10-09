@@ -93,6 +93,16 @@
             Manage bots, destinations, and GitHub subscriptions from one place.
           </p>
         </header>
+        {% if notice_message %}
+        <div class="mb-8 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100 shadow shadow-emerald-900/40">
+          {{ notice_message }}
+        </div>
+        {% endif %}
+        {% if error_message %}
+        <div class="mb-8 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100 shadow shadow-red-900/40">
+          {{ error_message }}
+        </div>
+        {% endif %}
 
         <section class="grid gap-4 md:grid-cols-3">
           <div
@@ -182,6 +192,36 @@
                         >
                           View webhook
                         </a>
+                        <details class="group inline-block">
+                          <summary class="inline-flex cursor-pointer items-center rounded-full border border-amber-400/40 px-3 py-1 font-medium text-amber-200 transition hover:border-amber-400/70 hover:text-amber-100">
+                            Rotate token
+                          </summary>
+                          <form
+                            method="post"
+                            action="{{ request.url_for('admin_update_bot_token', bot_id=bot.id) }}"
+                            class="mt-2 space-y-2 rounded-xl border border-slate-700/60 bg-slate-900/80 p-3 shadow-inner shadow-slate-950/40"
+                          >
+                            <label class="block text-[0.65rem] uppercase tracking-wide text-slate-400">
+                              New token
+                              <input
+                                type="password"
+                                name="token"
+                                required
+                                placeholder="123456:ABCDEF..."
+                                class="mt-1 w-full rounded-lg border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                              />
+                            </label>
+                            <p class="text-[0.65rem] text-slate-500">
+                              Saving the token refreshes the Telegram webhook automatically.
+                            </p>
+                            <button
+                              type="submit"
+                              class="inline-flex w-full items-center justify-center rounded-full border border-amber-400/50 bg-amber-400/10 px-3 py-1 font-semibold text-amber-100 transition hover:border-amber-400/80 hover:bg-amber-400/20"
+                            >
+                              Save token
+                            </button>
+                          </form>
+                        </details>
                         {% if bot.subs %}
                         <button
                           type="button"

@@ -59,6 +59,16 @@
             Destinations define where GitHub events are delivered. Chat IDs can be personal chats, groups, or channels. Use <code class="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-200">here</code> from Telegram to copy chat IDs.
           </p>
         </header>
+        {% if notice_message %}
+        <div class="mb-8 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100 shadow shadow-emerald-900/40">
+          {{ notice_message }}
+        </div>
+        {% endif %}
+        {% if error_message %}
+        <div class="mb-8 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100 shadow shadow-red-900/40">
+          {{ error_message }}
+        </div>
+        {% endif %}
 
         <section class="grid gap-6 md:grid-cols-2">
           <div class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-6 shadow-lg shadow-slate-950/40">
@@ -133,9 +143,63 @@
                     </form>
                     {% endif %}
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 space-y-2">
+                    <details class="group">
+                      <summary class="inline-flex cursor-pointer items-center rounded-full border border-amber-400/40 px-3 py-1 text-xs font-medium text-amber-100 transition hover:border-amber-400/70 hover:text-amber-50">
+                        Edit
+                      </summary>
+                      <form
+                        method="post"
+                        action="{{ request.url_for('admin_edit_destination', destination_id=dest.id) }}"
+                        class="mt-2 space-y-2 rounded-xl border border-slate-700/60 bg-slate-900/80 p-3 text-xs text-slate-200 shadow-inner shadow-slate-950/40"
+                      >
+                        <label class="block text-[0.65rem] uppercase tracking-wide text-slate-400">
+                          Chat ID
+                          <input
+                            type="text"
+                            name="chat_id"
+                            required
+                            value="{{ dest.chat_id }}"
+                            class="mt-1 w-full rounded-lg border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                          />
+                        </label>
+                        <label class="block text-[0.65rem] uppercase tracking-wide text-slate-400">
+                          Title
+                          <input
+                            type="text"
+                            name="title"
+                            value="{{ dest.title }}"
+                            class="mt-1 w-full rounded-lg border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                          />
+                        </label>
+                        <label class="block text-[0.65rem] uppercase tracking-wide text-slate-400">
+                          Topic ID
+                          <input
+                            type="text"
+                            name="topic_id"
+                            value="{{ dest.topic_id if dest.topic_id is not none else '' }}"
+                            class="mt-1 w-full rounded-lg border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                          />
+                        </label>
+                        <label class="flex items-center gap-2 text-[0.65rem] text-slate-300">
+                          <input
+                            type="checkbox"
+                            name="is_default"
+                            class="h-4 w-4 rounded border-slate-700 bg-slate-900 text-amber-400 focus:ring-amber-400/40"
+                            {% if dest.is_default %}checked{% endif %}
+                          />
+                          Set as default
+                        </label>
+                        <button
+                          type="submit"
+                          class="inline-flex w-full items-center justify-center rounded-full border border-amber-400/50 bg-amber-400/10 px-3 py-1 font-semibold text-amber-100 transition hover:border-amber-400/80 hover:bg-amber-400/20"
+                        >
+                          Save changes
+                        </button>
+                      </form>
+                    </details>
                     <form method="post" action="{{ request.url_for('admin_delete_destination', destination_id=dest.id) }}" onsubmit="return confirm('Delete this destination?');">
-                      <button type="submit" class="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-medium text-red-200 transition hover:border-red-500/60">Delete</button>
+                      <button type="submit" class="w-full rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-medium text-red-200 transition hover:border-red-500/60">Delete</button>
                     </form>
                   </td>
                 </tr>

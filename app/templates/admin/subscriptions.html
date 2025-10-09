@@ -59,6 +59,16 @@
             Connect GitHub repositories with Telegram destinations. Each subscription issues a unique webhook URL and secret.
           </p>
         </header>
+        {% if notice_message %}
+        <div class="mb-8 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100 shadow shadow-emerald-900/40">
+          {{ notice_message }}
+        </div>
+        {% endif %}
+        {% if error_message %}
+        <div class="mb-8 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100 shadow shadow-red-900/40">
+          {{ error_message }}
+        </div>
+        {% endif %}
 
         <section class="grid gap-6 md:grid-cols-2">
           <div class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-6 shadow-lg shadow-slate-950/40">
@@ -156,9 +166,73 @@
                     <p class="mt-2">Secret:</p>
                     <code class="mt-1 block break-all rounded bg-slate-800 px-2 py-1 text-xs text-slate-200">{{ sub.secret }}</code>
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 space-y-2 text-xs text-slate-300">
+                    <details class="group">
+                      <summary class="inline-flex cursor-pointer items-center rounded-full border border-amber-400/40 px-3 py-1 font-medium text-amber-100 transition hover:border-amber-400/70 hover:text-amber-50">
+                        Edit
+                      </summary>
+                      <form
+                        method="post"
+                        action="{{ request.url_for('admin_edit_subscription', subscription_id=sub.id) }}"
+                        class="mt-2 space-y-2 rounded-xl border border-slate-700/60 bg-slate-900/80 p-3 shadow-inner shadow-slate-950/40"
+                      >
+                        <label class="block text-[0.65rem] uppercase tracking-wide text-slate-400">
+                          Repository
+                          <input
+                            type="text"
+                            name="repo"
+                            required
+                            value="{{ sub.repo }}"
+                            class="mt-1 w-full rounded-lg border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                          />
+                        </label>
+                        <label class="block text-[0.65rem] uppercase tracking-wide text-slate-400">
+                          Events (comma separated)
+                          <input
+                            type="text"
+                            name="events"
+                            value="{{ '' if sub.events == '*' else sub.events }}"
+                            class="mt-1 w-full rounded-lg border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                          />
+                        </label>
+                        <label class="block text-[0.65rem] uppercase tracking-wide text-slate-400">
+                          Destination
+                          <select
+                            name="destination_id"
+                            required
+                            class="mt-1 w-full rounded-lg border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-100 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                          >
+                            {% for dest in destinations %}
+                            <option value="{{ dest.id }}" {% if dest.id == sub.destination_id %}selected{% endif %}>
+                              {{ dest.title or dest.chat_id }} (ID {{ dest.id }})
+                            </option>
+                            {% endfor %}
+                          </select>
+                        </label>
+                        <label class="block text-[0.65rem] uppercase tracking-wide text-slate-400">
+                          Bot
+                          <select
+                            name="bot_id"
+                            required
+                            class="mt-1 w-full rounded-lg border border-slate-700/70 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-100 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                          >
+                            {% for bot in bot_options %}
+                            <option value="{{ bot.id }}" {% if bot.id == sub.bot_id %}selected{% endif %}>
+                              {{ bot.label }}
+                            </option>
+                            {% endfor %}
+                          </select>
+                        </label>
+                        <button
+                          type="submit"
+                          class="inline-flex w-full items-center justify-center rounded-full border border-amber-400/50 bg-amber-400/10 px-3 py-1 font-semibold text-amber-100 transition hover:border-amber-400/80 hover:bg-amber-400/20"
+                        >
+                          Save changes
+                        </button>
+                      </form>
+                    </details>
                     <form method="post" action="{{ request.url_for('admin_delete_subscription', subscription_id=sub.id) }}" onsubmit="return confirm('Delete this subscription?');">
-                      <button type="submit" class="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-medium text-red-200 transition hover:border-red-500/60">
+                      <button type="submit" class="w-full rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-medium text-red-200 transition hover:border-red-500/60">
                         Delete
                       </button>
                     </form>
