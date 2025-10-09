@@ -63,7 +63,7 @@
         <section class="grid gap-6 md:grid-cols-2">
           <div class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-6 shadow-lg shadow-slate-950/40">
             <h2 class="text-lg font-semibold text-slate-100">Create subscription</h2>
-            {% if destinations and bots %}
+            {% if destinations and bot_options %}
             <form method="post" action="{{ request.url_for('admin_create_subscription') }}" class="mt-4 space-y-4">
               <div>
                 <label class="block text-xs font-medium uppercase tracking-wide text-slate-400">Repository</label>
