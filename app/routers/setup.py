@@ -119,7 +119,7 @@ async def setup_main_bot_submit(
             "owner_tg_id": result.owner_tg_id,
             "webhook_url": webhook_url,
             "webhook_result": result.webhook_result,
-            "info_link": request.url_for("bot_info") + f"?token={token}",
+            "info_link": str(request.url_for("bot_info")) + f"?token={token}",
         },
         status_code=status,
     )
