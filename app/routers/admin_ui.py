@@ -93,6 +93,31 @@ def admin_dashboard(request: Request):
         )
 
 
+@router.post("/bots/{bot_id}/delete", name="admin_delete_bot")
+def delete_bot(request: Request, bot_id: int):
+    with _get_db() as db:
+        admin = _require_admin(request, db)
+        bot = (
+            db.query(Bot)
+            .filter(Bot.id == bot_id, Bot.owner_user_id == admin.id)
+            .first()
+        )
+        if not bot:
+            raise HTTPException(404, "Bot not found.")
+        if bot.subs:
+            return RedirectResponse(
+                url=str(request.url_for("admin_dashboard")), status_code=303
+            )
+        bot_cache_key = bot.id
+        db.delete(bot)
+        db.commit()
+
+    _BOT_USERNAME_CACHE.pop(bot_cache_key, None)
+    return RedirectResponse(
+        url=str(request.url_for("admin_dashboard")), status_code=303
+    )
+
+
 @router.get("/destinations", response_class=HTMLResponse, name="admin_destinations")
 def destinations_page(request: Request):
     with _get_db() as db:
