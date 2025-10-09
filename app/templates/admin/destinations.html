@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Destinations</title>
+    <meta name="description" content="Manage Telegram destinations for GitHub notifications." />
+    <link rel="canonical" href="{{ request.url }}" />
+    <meta property="og:title" content="Destinations" />
+    <meta property="og:description" content="Manage Telegram destinations for GitHub notifications." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.url }}" />
+    <meta property="og:image" content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}" />
+    <meta property="og:site_name" content="GitHub → Telegram Notifier" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Destinations" />
+    <meta name="twitter:description" content="Manage Telegram destinations for GitHub notifications." />
+    <meta name="twitter:image" content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="icon" type="image/svg+xml" href="{{ request.url_for('static', path='images/favicon.svg') }}" />
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ request.url_for('static', path='images/favicon-96x96.png') }}" />
+    <link rel="shortcut icon" href="{{ request.url_for('static', path='images/favicon.ico') }}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ request.url_for('static', path='images/apple-touch-icon.png') }}" />
+    <link rel="manifest" href="{{ request.url_for('static', path='images/site.webmanifest') }}" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <style>
+      body {
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      #particles-js {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: radial-gradient(
+          circle at 20% 20%,
+          rgba(56, 189, 248, 0.18),
+          rgba(15, 23, 42, 0.93) 55%,
+          rgba(2, 6, 23, 1)
+        );
+      }
+
+      .content-wrapper {
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div id="particles-js" aria-hidden="true"></div>
+    <div class="content-wrapper flex min-h-screen flex-col">
+      {% include "partials/navbar.html" %}
+      <main class="mx-auto flex-1 w-full max-w-5xl px-6 py-12">
+        <header class="mb-10 space-y-2">
+          <h1 class="text-3xl font-semibold text-slate-50">Destinations</h1>
+          <p class="text-sm text-slate-400">
+            Destinations define where GitHub events are delivered. Chat IDs can be personal chats, groups, or channels. Use <code class="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-200">here</code> from Telegram to copy chat IDs.
+          </p>
+        </header>
+
+        <section class="grid gap-6 md:grid-cols-2">
+          <div class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-6 shadow-lg shadow-slate-950/40">
+            <h2 class="text-lg font-semibold text-slate-100">Add destination</h2>
+            <form method="post" action="{{ request.url_for('admin_create_destination') }}" class="mt-4 space-y-4">
+              <div>
+                <label class="block text-xs font-medium uppercase tracking-wide text-slate-400">Chat ID</label>
+                <input type="text" name="chat_id" required placeholder="e.g. -1001234567890" class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium uppercase tracking-wide text-slate-400">Title (optional)</label>
+                <input type="text" name="title" placeholder="Team chat" class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium uppercase tracking-wide text-slate-400">Topic ID (optional)</label>
+                <input type="text" name="topic_id" placeholder="Use for forum/topic-aware groups" class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30" />
+              </div>
+              <label class="flex items-center gap-2 text-xs text-slate-300">
+                <input type="checkbox" name="is_default" class="h-4 w-4 rounded border-slate-700 bg-slate-900 text-sky-400 focus:ring-sky-400/40" />
+                Mark as default destination
+              </label>
+              <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:shadow-xl hover:shadow-sky-500/30 focus:outline-none focus:ring-2 focus:ring-sky-400/40">
+                Save destination
+              </button>
+            </form>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-6 shadow-lg shadow-slate-950/40">
+            <h2 class="text-lg font-semibold text-slate-100">Tips</h2>
+            <ul class="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-400">
+              <li>
+                For channels, add your bot as administrator so it can post updates.
+              </li>
+              <li>
+                Forum-style groups require a topic ID (message thread). Leave blank for legacy groups.
+              </li>
+              <li>
+                You can maintain multiple destinations and pick the default for new subscriptions.
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="mt-12">
+          <h2 class="text-lg font-semibold text-slate-100">Existing destinations</h2>
+          <div class="mt-4 overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-900/70 shadow-lg shadow-slate-950/40">
+            <table class="min-w-full divide-y divide-slate-800/70 text-sm">
+              <thead class="bg-slate-900/70 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th class="px-4 py-3">Title</th>
+                  <th class="px-4 py-3">Chat ID</th>
+                  <th class="px-4 py-3">Topic</th>
+                  <th class="px-4 py-3">Default</th>
+                  <th class="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/70 text-slate-200">
+                {% for dest in destinations %}
+                <tr class="hover:bg-slate-900/60">
+                  <td class="px-4 py-3">
+                    <span class="font-semibold text-slate-100">{{ dest.title or '-' }}</span>
+                    <p class="text-xs text-slate-500">ID {{ dest.id }}</p>
+                  </td>
+                  <td class="px-4 py-3 font-mono text-xs text-slate-300">{{ dest.chat_id }}</td>
+                  <td class="px-4 py-3 text-xs text-slate-400">{{ dest.topic_id if dest.topic_id is not none else '-' }}</td>
+                  <td class="px-4 py-3">
+                    {% if dest.is_default %}
+                    <span class="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[0.7rem] font-medium text-emerald-200">Default</span>
+                    {% else %}
+                    <form method="post" action="{{ request.url_for('admin_set_destination_default', destination_id=dest.id) }}">
+                      <button type="submit" class="inline-flex items-center rounded-full border border-slate-700/50 px-2 py-0.5 text-[0.7rem] font-medium text-slate-300 transition hover:border-emerald-500/40 hover:text-emerald-200">Set default</button>
+                    </form>
+                    {% endif %}
+                  </td>
+                  <td class="px-4 py-3">
+                    <form method="post" action="{{ request.url_for('admin_delete_destination', destination_id=dest.id) }}" onsubmit="return confirm('Delete this destination?');">
+                      <button type="submit" class="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-medium text-red-200 transition hover:border-red-500/60">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="5" class="px-4 py-6 text-center text-slate-500">
+                    No destinations yet. Add one to start routing GitHub events.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      if (window.particlesJS) {
+        particlesJS("particles-js", {
+          particles: {
+            number: { value: 60, density: { enable: true, value_area: 800 } },
+            color: { value: "#38bdf8" },
+            shape: { type: "circle" },
+            opacity: { value: 0.3 },
+            size: { value: 3, random: true },
+            line_linked: {
+              enable: true,
+              distance: 150,
+              color: "#38bdf8",
+              opacity: 0.2,
+              width: 1,
+            },
+            move: {
+              enable: true,
+              speed: 2,
+              direction: "none",
+              random: false,
+              straight: false,
+              out_mode: "out",
+              attract: { enable: false },
+            },
+          },
+          interactivity: {
+            detect_on: "canvas",
+            events: {
+              onhover: { enable: true, mode: "repulse" },
+              onclick: { enable: true, mode: "push" },
+              resize: true,
+            },
+            modes: {
+              repulse: { distance: 120, duration: 0.4 },
+              push: { particles_nb: 4 },
+            },
+          },
+          retina_detect: true,
+        });
+      }
+    </script>
+  </body>
+</html>

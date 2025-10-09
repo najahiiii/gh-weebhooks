@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Subscriptions</title>
+    <meta name="description" content="Manage GitHub repository subscriptions." />
+    <link rel="canonical" href="{{ request.url }}" />
+    <meta property="og:title" content="Subscriptions" />
+    <meta property="og:description" content="Manage GitHub repository subscriptions." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.url }}" />
+    <meta property="og:image" content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}" />
+    <meta property="og:site_name" content="GitHub → Telegram Notifier" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Subscriptions" />
+    <meta name="twitter:description" content="Manage GitHub repository subscriptions." />
+    <meta name="twitter:image" content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="icon" type="image/svg+xml" href="{{ request.url_for('static', path='images/favicon.svg') }}" />
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ request.url_for('static', path='images/favicon-96x96.png') }}" />
+    <link rel="shortcut icon" href="{{ request.url_for('static', path='images/favicon.ico') }}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ request.url_for('static', path='images/apple-touch-icon.png') }}" />
+    <link rel="manifest" href="{{ request.url_for('static', path='images/site.webmanifest') }}" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <style>
+      body {
+        position: relative;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      #particles-js {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: radial-gradient(
+          circle at 20% 20%,
+          rgba(99, 102, 241, 0.16),
+          rgba(15, 23, 42, 0.94) 55%,
+          rgba(2, 6, 23, 1)
+        );
+      }
+
+      .content-wrapper {
+        position: relative;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div id="particles-js" aria-hidden="true"></div>
+    <div class="content-wrapper flex min-h-screen flex-col">
+      {% include "partials/navbar.html" %}
+      <main class="mx-auto flex-1 w-full max-w-6xl px-6 py-12">
+        <header class="mb-10 space-y-2">
+          <h1 class="text-3xl font-semibold text-slate-50">Subscriptions</h1>
+          <p class="text-sm text-slate-400">
+            Connect GitHub repositories with Telegram destinations. Each subscription issues a unique webhook URL and secret.
+          </p>
+        </header>
+
+        <section class="grid gap-6 md:grid-cols-2">
+          <div class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-6 shadow-lg shadow-slate-950/40">
+            <h2 class="text-lg font-semibold text-slate-100">Create subscription</h2>
+            {% if destinations and bots %}
+            <form method="post" action="{{ request.url_for('admin_create_subscription') }}" class="mt-4 space-y-4">
+              <div>
+                <label class="block text-xs font-medium uppercase tracking-wide text-slate-400">Repository</label>
+                <input type="text" name="repo" required placeholder="owner/repo" class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/30" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium uppercase tracking-wide text-slate-400">Events (comma separated)</label>
+                <input type="text" name="events" placeholder="push,pull_request" class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/30" />
+                <p class="mt-2 text-xs text-slate-500">
+                  Leave empty to receive all GitHub events delivered to the webhook.
+                </p>
+              </div>
+              <div>
+                <label class="block text-xs font-medium uppercase tracking-wide text-slate-400">Destination</label>
+                <select name="destination_id" required class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
+                  <option value="" disabled selected>Select destination…</option>
+                  {% for dest in destinations %}
+                  <option value="{{ dest.id }}">
+                    {{ dest.title or dest.chat_id }} (ID {{ dest.id }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium uppercase tracking-wide text-slate-400">Bot</label>
+                <select name="bot_id" required class="mt-2 w-full rounded-xl border border-slate-700/70 bg-slate-900/70 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
+                  <option value="" disabled selected>Select bot…</option>
+                  {% for bot in bots %}
+                  <option value="{{ bot.id }}">{{ bot.bot_id }} (ID {{ bot.id }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <button type="submit" class="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:shadow-xl hover:shadow-indigo-500/30 focus:outline-none focus:ring-2 focus:ring-indigo-400/40">
+                Create subscription
+              </button>
+            </form>
+            {% else %}
+            <p class="mt-4 text-sm text-slate-400">
+              Add at least one bot and one destination before creating subscriptions.
+            </p>
+            <p class="text-xs text-slate-500">
+              Bots can be linked from the dashboard; destinations can be registered on the Destinations page.
+            </p>
+            {% endif %}
+          </div>
+
+          <div class="rounded-2xl border border-slate-800/60 bg-slate-900/80 p-6 shadow-lg shadow-slate-950/40">
+            <h2 class="text-lg font-semibold text-slate-100">Webhook setup</h2>
+            <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-400">
+              <li>Copy the payload URL from the table below.</li>
+              <li>In GitHub, open <strong>Settings → Webhooks</strong> for the repository.</li>
+              <li>Use <code class="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-200">application/json</code> as content type.</li>
+              <li>Paste the shared secret and select matching events.</li>
+            </ol>
+            <p class="mt-4 text-xs text-slate-500">
+              Payload URL format: <code class="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-200">{{ public_base_url }}/wh/&lt;hook_id&gt;</code>
+            </p>
+          </div>
+        </section>
+
+        <section class="mt-12">
+          <h2 class="text-lg font-semibold text-slate-100">Existing subscriptions</h2>
+          <div class="mt-4 overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-900/70 shadow-lg shadow-slate-950/40">
+            <table class="min-w-full divide-y divide-slate-800/70 text-sm">
+              <thead class="bg-slate-900/70 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th class="px-4 py-3">Repository</th>
+                  <th class="px-4 py-3">Events</th>
+                  <th class="px-4 py-3">Destination</th>
+                  <th class="px-4 py-3">Webhook</th>
+                  <th class="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/70 text-slate-200">
+                {% for sub in subscriptions %}
+                <tr class="hover:bg-slate-900/60">
+                  <td class="px-4 py-3">
+                    <span class="font-semibold text-slate-100">{{ sub.repo }}</span>
+                    <p class="text-xs text-slate-500">ID {{ sub.id }} • Bot {{ sub.bot.bot_id if sub.bot else 'unknown' }}</p>
+                  </td>
+                  <td class="px-4 py-3 text-xs text-slate-400">{{ sub.events_csv or '*' }}</td>
+                  <td class="px-4 py-3 text-sm text-slate-200">
+                    {{ sub.destination.title or sub.destination.chat_id if sub.destination else 'missing destination' }}
+                  </td>
+                  <td class="px-4 py-3 text-xs text-slate-400">
+                    <p>Payload URL:</p>
+                    <code class="mt-1 block break-all rounded bg-slate-800 px-2 py-1 text-xs text-slate-200">{{ public_base_url }}/wh/{{ sub.hook_id }}</code>
+                    <p class="mt-2">Secret:</p>
+                    <code class="mt-1 block break-all rounded bg-slate-800 px-2 py-1 text-xs text-slate-200">{{ sub.secret }}</code>
+                  </td>
+                  <td class="px-4 py-3">
+                    <form method="post" action="{{ request.url_for('admin_delete_subscription', subscription_id=sub.id) }}" onsubmit="return confirm('Delete this subscription?');">
+                      <button type="submit" class="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs font-medium text-red-200 transition hover:border-red-500/60">
+                        Delete
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="5" class="px-4 py-6 text-center text-slate-500">
+                    No subscriptions yet. Create one to start receiving GitHub updates.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script>
+      if (window.particlesJS) {
+        particlesJS("particles-js", {
+          particles: {
+            number: { value: 70, density: { enable: true, value_area: 900 } },
+            color: { value: "#6366f1" },
+            shape: { type: "circle" },
+            opacity: { value: 0.24 },
+            size: { value: 3, random: true },
+            line_linked: {
+              enable: true,
+              distance: 160,
+              color: "#6366f1",
+              opacity: 0.2,
+              width: 1,
+            },
+            move: {
+              enable: true,
+              speed: 1.8,
+              direction: "none",
+              random: false,
+              straight: false,
+              out_mode: "out",
+              attract: { enable: false },
+            },
+          },
+          interactivity: {
+            detect_on: "canvas",
+            events: {
+              onhover: { enable: true, mode: "repulse" },
+              onclick: { enable: true, mode: "push" },
+              resize: true,
+            },
+            modes: {
+              repulse: { distance: 130, duration: 0.4 },
+              push: { particles_nb: 4 },
+            },
+          },
+          retina_detect: true,
+        });
+      }
+    </script>
+  </body>
+</html>
