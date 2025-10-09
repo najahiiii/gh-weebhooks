@@ -25,4 +25,7 @@ def ensure_user_by_tg_id(session: Session, tg_user_id: str) -> User:
         )
         session.add(u)
         session.commit()
+    elif uid in ADMIN_USER_IDS and not u.is_admin:
+        u.is_admin = True
+        session.commit()
     return u

@@ -3,17 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin Login</title>
-    <meta
-      name="description"
-      content="Authenticate with Telegram to access the GitHub → Telegram admin tools."
-    />
+    <title>{{ page_title }}</title>
+    <meta name="description" content="{{ page_description }}" />
     <link rel="canonical" href="{{ request.url }}" />
-    <meta property="og:title" content="Admin Login" />
-    <meta
-      property="og:description"
-      content="Authenticate with Telegram to access the GitHub → Telegram admin tools."
-    />
+    <meta property="og:title" content="{{ hero_title }}" />
+    <meta property="og:description" content="{{ page_description }}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="{{ request.url }}" />
     <meta
@@ -22,11 +16,8 @@
     />
     <meta property="og:site_name" content="GitHub → Telegram Notifier" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Admin Login" />
-    <meta
-      name="twitter:description"
-      content="Authenticate with Telegram to access the GitHub → Telegram admin tools."
-    />
+    <meta name="twitter:title" content="{{ hero_title }}" />
+    <meta name="twitter:description" content="{{ page_description }}" />
     <meta
       name="twitter:image"
       content="{{ request.url_for('static', path='images/web-app-manifest-512x512.png') }}"
@@ -97,10 +88,8 @@
             alt="GitHub → Telegram Notifier logo"
             class="h-14 w-14"
           />
-          <h1 class="text-3xl font-semibold text-slate-50">Admin Login</h1>
-          <p class="text-sm text-slate-400">
-            Sign in with Telegram to manage bots, destinations, and subscriptions.
-          </p>
+          <h1 class="text-3xl font-semibold text-slate-50">{{ hero_title }}</h1>
+          <p class="text-sm text-slate-400">{{ hero_description }}</p>
         </div>
 
         {% if login_disabled %}
@@ -115,9 +104,10 @@
             Authorize with Telegram
           </p>
           <div id="telegram-login-widget"></div>
-          <p class="text-xs text-slate-500">
-            Only Telegram accounts marked as admins can access the dashboard.
-          </p>
+          <p class="text-xs text-slate-500">{{ note_text }}</p>
+          {% if extra_hint %}
+          <p class="text-xs text-slate-500">{% autoescape false %}{{ extra_hint }}{% endautoescape %}</p>
+          {% endif %}
           <div
             id="login-status"
             class="hidden w-full rounded-xl border border-slate-700/60 bg-slate-900/70 px-4 py-3 text-sm text-slate-200"
@@ -125,10 +115,29 @@
         </div>
         {% endif %}
 
-        <div class="mt-10 text-center text-xs text-slate-500">
+        <div class="mt-10 text-center text-xs text-slate-500 space-y-2">
           <a href="{{ next_path }}" class="text-sky-300 hover:text-sky-200">
             ← Return to previous page
           </a>
+          {% if page_mode == "login" %}
+          <div>
+            Belum punya akun?
+            <a
+              href="{{ request.url_for('auth_register') }}?next={{ next_path | urlencode }}"
+              class="text-sky-300 hover:text-sky-200"
+              >Daftar</a
+            >
+          </div>
+          {% else %}
+          <div>
+            Sudah punya akun?
+            <a
+              href="{{ request.url_for('auth_login') }}?next={{ next_path | urlencode }}"
+              class="text-sky-300 hover:text-sky-200"
+              >Masuk</a
+            >
+          </div>
+          {% endif %}
         </div>
       </div>
       </main>
@@ -212,7 +221,7 @@
           });
           const data = await response.json();
           if (!response.ok) {
-            setStatus(data.detail || 'Login failed. You might not be an admin.', 'error');
+            setStatus(data.detail || 'Login failed. Please verify your Telegram account and try again.', 'error');
             return;
           }
           setStatus('Success! Redirecting…', 'success');

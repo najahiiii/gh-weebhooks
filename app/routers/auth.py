@@ -1,4 +1,4 @@
-"""Auth router handling Telegram-based admin login."""
+"""Auth router handling Telegram-based login for the web UI."""
 
 from __future__ import annotations
 
@@ -93,33 +93,87 @@ def _create_session(db: Session, user: User) -> AdminSession:
     return session
 
 
+def _auth_page_context(
+    request: Request,
+    *,
+    next_path: str,
+    page_mode: str,
+) -> dict:
+    is_register = page_mode == "register"
+    page_title = "Create Account" if is_register else "Sign In"
+    hero_title = "Register" if is_register else "Sign in"
+    hero_description = (
+        "Connect your GitHub repositories to Telegram destinations."
+        if is_register
+        else "Manage your Telegram bots, destinations, and GitHub subscriptions."
+    )
+    note_text = (
+        "Use your Telegram account to create a profile for this service."
+        if is_register
+        else "Use your Telegram account to access your workspace."
+    )
+    extra_hint = (
+        "Already joined? "
+        "<a href=\"{login_url}\" class=\"text-sky-300 hover:text-sky-200\">Sign in here</a>."
+    ).format(login_url=request.url_for("auth_login")) if is_register else None
+
+    return {
+        "request": request,
+        "login_disabled": not settings.login_bot_token or not settings.login_bot_username,
+        "bot_username": settings.login_bot_username,
+        "next_path": next_path,
+        "page_mode": page_mode,
+        "page_title": f"{page_title} · GitHub → Telegram",
+        "page_description": hero_description,
+        "hero_title": hero_title,
+        "hero_description": hero_description,
+        "note_text": note_text,
+        "extra_hint": extra_hint,
+    }
+
+
 @router.get("/login", response_class=HTMLResponse, name="auth_login")
 def login_page(request: Request, next: Optional[str] = None):
     next_path = _clean_next_path(next)
-    if not settings.login_bot_token or not settings.login_bot_username:
-        return templates.TemplateResponse(
-            "auth/login.html",
-            {
-                "request": request,
-                "login_disabled": True,
-                "reason": "LOGIN_BOT_TOKEN or LOGIN_BOT_USERNAME not configured.",
-                "next_path": next_path,
-            },
+    current_user = getattr(request.state, "user", None)
+    if current_user:
+        target = (
+            next_path
+            if next is not None
+            else str(request.url_for("admin_dashboard"))
         )
+        return RedirectResponse(target, status_code=303)
 
-    if getattr(request.state, "user", None) and request.state.user.is_admin:
-        # already logged in
+    context = _auth_page_context(
+        request,
+        next_path=next_path,
+        page_mode="login",
+    )
+    if context["login_disabled"]:
+        context["reason"] = "LOGIN_BOT_TOKEN or LOGIN_BOT_USERNAME not configured."
+    return templates.TemplateResponse("auth/login.html", context)
+
+
+@router.get("/register", response_class=HTMLResponse, name="auth_register")
+def register_page(request: Request, next: Optional[str] = None):
+    cleaned_next = _clean_next_path(next)
+    next_path = (
+        str(request.url_for("admin_dashboard"))
+        if next is None
+        else cleaned_next
+    )
+    current_user = getattr(request.state, "user", None)
+    if current_user:
         return RedirectResponse(next_path, status_code=303)
 
-    return templates.TemplateResponse(
-        "auth/login.html",
-        {
-            "request": request,
-            "login_disabled": False,
-            "bot_username": settings.login_bot_username,
-            "next_path": next_path,
-        },
+    context = _auth_page_context(
+        request,
+        next_path=next_path,
+        page_mode="register",
     )
+    if context["login_disabled"]:
+        context["reason"] = "LOGIN_BOT_TOKEN atau LOGIN_BOT_USERNAME belum dikonfigurasi."
+    return templates.TemplateResponse("auth/login.html", context)
 
 
 @router.post("/verify", response_class=JSONResponse, name="auth_verify")
@@ -145,9 +199,6 @@ def verify_login(
     if not user.is_admin and str(payload.id) in settings.admin_ids:
         user.is_admin = True
         db.commit()
-
-    if not user.is_admin:
-        raise HTTPException(403, "You are not registered as an admin.")
 
     session = _create_session(db, user)
 

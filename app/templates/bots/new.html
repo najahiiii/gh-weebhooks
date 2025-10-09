@@ -139,10 +139,16 @@
               name="owner_tg_id"
               placeholder="e.g. 123456789"
               required
+              value="{{ owner_default }}"
               class="mt-2 w-full rounded-xl border border-slate-700/80 bg-slate-900/70 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
             />
             <p class="mt-2 text-xs text-slate-500">
-              The owner is automatically promoted to app admin.
+              {% if owner_default %}
+              Pre-filled with your Telegram user ID. Change it if you are registering
+              this bot for someone else.
+              {% else %}
+              Provide the Telegram user ID of the account that should manage this bot.
+              {% endif %}
             </p>
           </div>
           <div>

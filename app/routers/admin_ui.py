@@ -99,31 +99,31 @@ def _bot_display(bot: Bot) -> str:
     return label
 
 
-def _require_admin(request: Request, db: Session) -> User:
+def _require_account(request: Request, db: Session) -> User:
     state_user = getattr(request.state, "user", None)
-    if not state_user or not getattr(state_user, "is_admin", False):
-        raise HTTPException(403, "Admin login required")
+    if not state_user:
+        raise HTTPException(403, "Login required")
     user = db.query(User).filter(User.id == state_user.id).first()
     if not user:
-        raise HTTPException(403, "Admin user not found")
+        raise HTTPException(403, "Account not found")
     return user
 
 
 @router.get("/dashboard", response_class=HTMLResponse, name="admin_dashboard")
 def admin_dashboard(request: Request):
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         bots = (
             db.query(Bot)
-            .filter(Bot.owner_user_id == admin.id)
+            .filter(Bot.owner_user_id == account.id)
             .order_by(Bot.created_at.desc())
             .all()
         )
         destinations_count = (
-            db.query(Destination).filter(Destination.owner_user_id == admin.id).count()
+            db.query(Destination).filter(Destination.owner_user_id == account.id).count()
         )
         subscriptions_count = (
-            db.query(Subscription).filter(Subscription.owner_user_id == admin.id).count()
+            db.query(Subscription).filter(Subscription.owner_user_id == account.id).count()
         )
         notice_code = request.query_params.get("notice")
         error_code = request.query_params.get("error")
@@ -146,10 +146,10 @@ def admin_dashboard(request: Request):
 def delete_bot(request: Request, bot_id: int):
     bot_cache_key: Optional[int] = None
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         bot = (
             db.query(Bot)
-            .filter(Bot.id == bot_id, Bot.owner_user_id == admin.id)
+            .filter(Bot.id == bot_id, Bot.owner_user_id == account.id)
             .first()
         )
         if not bot:
@@ -182,10 +182,10 @@ async def update_bot_token(request: Request, bot_id: int, token: str = Form(...)
 
     bot_cache_key: Optional[int] = None
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         bot = (
             db.query(Bot)
-            .filter(Bot.id == bot_id, Bot.owner_user_id == admin.id)
+            .filter(Bot.id == bot_id, Bot.owner_user_id == account.id)
             .first()
         )
         if not bot:
@@ -224,10 +224,10 @@ async def update_bot_token(request: Request, bot_id: int, token: str = Form(...)
 @router.get("/destinations", response_class=HTMLResponse, name="admin_destinations")
 def destinations_page(request: Request):
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         destinations = (
             db.query(Destination)
-            .filter(Destination.owner_user_id == admin.id)
+            .filter(Destination.owner_user_id == account.id)
             .order_by(Destination.id.desc())
             .all()
         )
@@ -264,9 +264,9 @@ def create_destination(
             topic_value = None
 
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         destination = Destination(
-            owner_user_id=admin.id,
+            owner_user_id=account.id,
             chat_id=chat_id,
             title=title,
             topic_id=topic_value,
@@ -274,7 +274,7 @@ def create_destination(
         )
         if is_default:
             db.query(Destination).filter(
-                Destination.owner_user_id == admin.id,
+                Destination.owner_user_id == account.id,
                 Destination.is_default.is_(True),
             ).update({"is_default": False})
             destination.is_default = True
@@ -315,12 +315,12 @@ def edit_destination(
             )
 
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         destination = (
             db.query(Destination)
             .filter(
                 Destination.id == destination_id,
-                Destination.owner_user_id == admin.id,
+                Destination.owner_user_id == account.id,
             )
             .first()
         )
@@ -333,7 +333,7 @@ def edit_destination(
 
         if is_default:
             db.query(Destination).filter(
-                Destination.owner_user_id == admin.id,
+                Destination.owner_user_id == account.id,
                 Destination.is_default.is_(True),
             ).update({"is_default": False})
             destination.is_default = True
@@ -350,12 +350,12 @@ def edit_destination(
 )
 def set_default_destination(request: Request, destination_id: int):
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         destination = (
             db.query(Destination)
             .filter(
                 Destination.id == destination_id,
-                Destination.owner_user_id == admin.id,
+                Destination.owner_user_id == account.id,
             )
             .first()
         )
@@ -363,7 +363,7 @@ def set_default_destination(request: Request, destination_id: int):
             raise HTTPException(404, "Destination not found.")
 
         db.query(Destination).filter(
-            Destination.owner_user_id == admin.id,
+            Destination.owner_user_id == account.id,
             Destination.is_default.is_(True),
         ).update({"is_default": False})
         destination.is_default = True
@@ -379,12 +379,12 @@ def set_default_destination(request: Request, destination_id: int):
 )
 def delete_destination(request: Request, destination_id: int):
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         destination = (
             db.query(Destination)
             .filter(
                 Destination.id == destination_id,
-                Destination.owner_user_id == admin.id,
+                Destination.owner_user_id == account.id,
             )
             .first()
         )
@@ -404,22 +404,22 @@ def delete_destination(request: Request, destination_id: int):
 @router.get("/subscriptions", response_class=HTMLResponse, name="admin_subscriptions")
 def subscriptions_page(request: Request):
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         subscriptions = (
             db.query(Subscription)
-            .filter(Subscription.owner_user_id == admin.id)
+            .filter(Subscription.owner_user_id == account.id)
             .order_by(Subscription.created_at.desc())
             .all()
         )
         destinations = (
             db.query(Destination)
-            .filter(Destination.owner_user_id == admin.id)
+            .filter(Destination.owner_user_id == account.id)
             .order_by(Destination.id.desc())
             .all()
         )
         bots = (
             db.query(Bot)
-            .filter(Bot.owner_user_id == admin.id)
+            .filter(Bot.owner_user_id == account.id)
             .order_by(Bot.created_at.desc())
             .all()
         )
@@ -482,12 +482,12 @@ def create_subscription(
     events_csv = (events or "").strip() or "*"
 
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         destination = (
             db.query(Destination)
             .filter(
                 Destination.id == destination_id,
-                Destination.owner_user_id == admin.id,
+                Destination.owner_user_id == account.id,
             )
             .first()
         )
@@ -496,7 +496,7 @@ def create_subscription(
 
         bot = (
             db.query(Bot)
-            .filter(Bot.id == bot_id, Bot.owner_user_id == admin.id)
+            .filter(Bot.id == bot_id, Bot.owner_user_id == account.id)
             .first()
         )
         if not bot:
@@ -506,7 +506,7 @@ def create_subscription(
         secret = uuid4().hex
 
         subscription = Subscription(
-            owner_user_id=admin.id,
+            owner_user_id=account.id,
             hook_id=hook_id,
             secret=secret,
             repo=repo,
@@ -541,12 +541,12 @@ def edit_subscription(
     events_csv = (events or "").strip() or "*"
 
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         subscription = (
             db.query(Subscription)
             .filter(
                 Subscription.id == subscription_id,
-                Subscription.owner_user_id == admin.id,
+                Subscription.owner_user_id == account.id,
             )
             .first()
         )
@@ -557,7 +557,7 @@ def edit_subscription(
             db.query(Destination)
             .filter(
                 Destination.id == destination_id,
-                Destination.owner_user_id == admin.id,
+                Destination.owner_user_id == account.id,
             )
             .first()
         )
@@ -568,7 +568,7 @@ def edit_subscription(
 
         bot = (
             db.query(Bot)
-            .filter(Bot.id == bot_id, Bot.owner_user_id == admin.id)
+            .filter(Bot.id == bot_id, Bot.owner_user_id == account.id)
             .first()
         )
         if not bot:
@@ -592,12 +592,12 @@ def edit_subscription(
 )
 def delete_subscription(request: Request, subscription_id: int):
     with _get_db() as db:
-        admin = _require_admin(request, db)
+        account = _require_account(request, db)
         subscription = (
             db.query(Subscription)
             .filter(
                 Subscription.id == subscription_id,
-                Subscription.owner_user_id == admin.id,
+                Subscription.owner_user_id == account.id,
             )
             .first()
         )

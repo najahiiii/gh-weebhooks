@@ -35,8 +35,8 @@ async def register_bot(
     public_base_url: Optional[str] = None,
 ) -> BotSetupResult:
     """
-    Ensure the owner exists (and is marked admin), store/update the bot token,
-    and configure the Telegram webhook.
+    Ensure the owner exists, store/update the bot token, and configure the
+    Telegram webhook.
     """
 
     bot_id = parse_bot_id_from_token(token)
@@ -44,9 +44,6 @@ async def register_bot(
         raise BotSetupError("Invalid token format.")
 
     owner = ensure_user_by_tg_id(session, owner_tg_id)
-    if not owner.is_admin:
-        owner.is_admin = True
-        session.commit()
 
     bot = session.query(Bot).filter_by(bot_id=bot_id).first()
     if not bot:

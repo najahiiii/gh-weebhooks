@@ -17,9 +17,9 @@ router = APIRouter(tags=["Bots"])
 ADMIN_HTTP_KEY = settings.admin_http_key
 
 
-def _has_session_admin(request: Request) -> bool:
+def _has_session_user(request: Request) -> bool:
     user = getattr(request.state, "user", None)
-    return bool(user and getattr(user, "is_admin", False))
+    return bool(user)
 
 
 def _check_admin_key(key_from_request: Optional[str]) -> bool:
@@ -44,7 +44,7 @@ def _error_template(request: Request, title: str, message: str, *, status_code: 
 
 @router.get("/bots/new", response_class=HTMLResponse)
 def new_bot_form(request: Request, key: Optional[str] = Query(None, alias="key")):
-    if not _has_session_admin(request):
+    if not _has_session_user(request):
         if not _check_admin_key(key):
             if key:
                 return _error_template(
@@ -56,15 +56,17 @@ def new_bot_form(request: Request, key: Optional[str] = Query(None, alias="key")
             login_url = str(request.url_for("auth_login")) + f"?next={request.url.path}"
             return RedirectResponse(login_url, status_code=303)
 
+    state_user = getattr(request.state, "user", None)
     return templates.TemplateResponse(
         "bots/new.html",
         {
             "request": request,
             "page_title": "Add Telegram Bot",
             "page_description": "Register a Telegram bot token, assign an owner, and configure the webhook for GitHub updates.",
-            "admin_key_required": bool(ADMIN_HTTP_KEY) and not _has_session_admin(request),
+            "admin_key_required": bool(ADMIN_HTTP_KEY) and not _has_session_user(request),
             "base_placeholder": settings.public_base_url,
             "form_action": request.url_for("add_bot"),
+            "owner_default": getattr(state_user, "telegram_user_id", ""),
         },
     )
 
@@ -78,12 +80,12 @@ async def add_bot(
     admin_key: Optional[str] = Form(None),
     session: Session = Depends(get_db),
 ):
-    if not _has_session_admin(request):
+    if not _has_session_user(request):
         if not _check_admin_key(admin_key):
             return _error_template(
                 request,
                 "Forbidden",
-                "Please login as an admin or provide a valid admin key.",
+                "Please login or provide a valid access key.",
                 status_code=403,
             )
 
@@ -123,7 +125,7 @@ async def bot_info(
     token: str,
     key: Optional[str] = Query(None, alias="key"),
 ):
-    if not _has_session_admin(request):
+    if not _has_session_user(request):
         if not _check_admin_key(key):
             if key:
                 return _error_template(

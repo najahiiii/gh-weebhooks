@@ -28,7 +28,7 @@ if navbar_hide_login is defined else False %}
         class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
         >Home</a
       >
-      {% if user and user.is_admin %}
+      {% if user %}
       <a
         href="{{ request.url_for('admin_dashboard') }}"
         class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
@@ -44,17 +44,19 @@ if navbar_hide_login is defined else False %}
         class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
         >subscriptions</a
       >
+      {% if user.is_admin %}
       <a
         href="{{ request.url_for('stats_page') }}"
         class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
         >stats</a
       >
+      {% endif %}
       <a
         href="{{ request.url_for('new_bot_form') }}"
         class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
         >add bot</a
       >
-      {% endif %} {% if user and user.is_admin %}
+      {% endif %} {% if user %}
       <form
         method="post"
         action="{{ request.url_for('auth_logout') }}"
@@ -69,9 +71,14 @@ if navbar_hide_login is defined else False %}
       </form>
       {% elif not hide_login %}
       <a
+        href="{{ request.url_for('auth_register') }}?next={{ current_path | urlencode }}"
+        class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
+        >register</a
+      >
+      <a
         href="{{ request.url_for('auth_login') }}?next={{ current_path | urlencode }}"
         class="rounded-full border border-slate-700/60 px-4 py-2 text-slate-200 transition hover:border-sky-400 hover:text-sky-200"
-        >admin login</a
+        >sign in</a
       >
       {% endif %}
     </div>
