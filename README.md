@@ -1,248 +1,83 @@
-# GitHub → Telegram Notifier (multi-user, multi-bot) with Topics & Channels
+# GitHub → Telegram Notifier (Next.js + Express rewrite)
 
-FastAPI app that lets multiple end-users connect their own Telegram bots and receive GitHub Webhook notifications in Telegram chats.
-Supports personal chats (PM), groups (including Group Topics), and channels. Uses SQLite by default and stores time in WIB (Asia/Jakarta, UTC+7).
-
----
-
-## Features
-
-- Multi-user: each Telegram user has their own account.
-- Multi-bot per user: users can register 1+ Telegram bot tokens.
-- Destinations: PM / group / channel; optional `topic_id` for Group Topics.
-- Subscriptions: bind `owner/repo` + `bot_id` + `destination_id` to forward GitHub events.
-- Event summaries: `push`, `pull_request`, `issues`, `release`, `workflow_run`, `ping`.
-- HMAC verification for GitHub (`X-Hub-Signature-256`).
-- MarkdownV2-safe rendering for Telegram messages.
-- Environment-based config with `.env` support (`python-dotenv`).
-- No migrations required for a fresh setup (SQLite schema created on first run).
-
----
-
-## Architecture (high level)
-
-- `users`: Telegram users of the app (admin flag is app-level).
-- `bots`: Telegram bot tokens registered by a user.
-- `destinations`: Telegram chat targets (optionally with `topic_id`).
-- `subscriptions`: GitHub webhook bindings per repo to a (bot, destination) pair.
-
-Endpoints:
-
-- `POST /tg/{bot_id}/{token}` – Telegram webhook for a specific user-bot.
-- `POST /wh/{hook_id}` – GitHub webhook endpoint for a subscription.
-- `GET /` – health.
-
----
-
-## Requirements
-
-- Python 3.9+ (uses `zoneinfo`; 3.11+ recommended).
-- Telegram Bot API token(s).
-- Publicly reachable HTTPS endpoint (for both Telegram and GitHub webhooks).
-
----
-
-## Quickstart (with `venv`)
-
-```bash
-# 1) Clone
-git clone https://github.com/najahiiii/gh-weebhooks.git
-cd gh-weebhooks
-
-# 2) Create & activate venv
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-source .venv/bin/activate
-
-# 3) Install deps
-pip install -U pip
-pip install -r requirements.txt
-
-# 4) Create .env
-cp .env.example .env  # or create manually, see below
-
-# 5) Run
-uvicorn app.app:app --host 127.0.0.1 --port PORTS --workers 2 --proxy-headers --forwarded-allow-ips="*"
-```
-
----
-
-## Configuration
-
-Create a `.env` file in the project root:
-
-```ini
-# Database (SQLite default is fine)
-DB_URL=sqlite:///./github_tg.sqlite3
-
-# Public base URL of your server (HTTPS)
-PUBLIC_BASE_URL=https://yourdomain.exe
-
-# Comma-separated Telegram numeric user IDs who should be admins in the app
-ADMIN_USER_IDS=123456789,987654321
-
-# IANA time zone name for timestamps (falls back to Asia/Jakarta)
-TIMEZONE=Asia/Jakarta
-```
-
-The app uses `python-dotenv` to load `.env` automatically.
-
----
-
-## Telegram setup
-
-This project is **multi-bot** per user. Each administrator can register their own bot token via the web UI.
-
-1. Create a Telegram bot via BotFather and note the token (e.g. `123456789:AA...`).
-2. Set the **Telegram webhook** for that bot to point to this app:
-
-   ```text
-   https://yourdomain.exe/tg/{bot_id}/{token}
-   ```
-
-   `{bot_id}` is the numeric part before `:` in the token. Example: token `123456789:AA...` → webhook `https://yourdomain.exe/tg/123456789/123456789:AA...`.
-
-The bot only needs to deliver outbound messages. Chatting with it is no longer required.
-
----
-
-## Admin web UI
-
-All management now happens in the browser:
-
-1. Visit `/auth/login` and authenticate with your Telegram account.
-2. Use **Add Bot** to store bot tokens and automatically configure their webhooks.
-3. Register destinations (chat IDs, topics) via **Admin → Destinations**.
-4. Create subscriptions under **Admin → Subscriptions** to obtain GitHub webhook URLs and secrets.
-5. Monitor deliveries from **Stats**.
-
-Each administrator can maintain multiple bots, destinations, and repository subscriptions.
-
----
-
-## GitHub webhook setup
-
-After adding a destination and choosing a default destination:
-
-1) In Telegram, run:
-
-    ```text
-    /subscribe owner/repo push,pull_request
-    ```
-
-    If you omit events, `*` is used (all allowed by the app).
-
-2) The bot replies with a Payload URL and Secret, for example:
-
-    ```text
-    Payload URL: https://yourdomain.exe/wh/abcd1234ef...
-    Content type: application/json
-    Secret: 9f7c...e21
-    Events: pick as needed
-    ```
-
-3) Go to the GitHub repository → Settings → Webhooks → Add webhook:
-   - Payload URL: the one provided (`/wh/<hook_id>`).
-   - Content type: `application/json`.
-   - Secret: as provided.
-   - Select the events you want (they must match if you restricted them in `/subscribe`).
-
-   The app verifies `X-Hub-Signature-256` using the secret.
-
----
-
-## Running in development
-
-```bash
-# Activate venv
-source .venv/bin/activate
-
-# Launch
-uvicorn app:app --reload --port 8000 --env-file .env
-```
-
-Health check:
-
-```bash
-curl -s https://yourdomain.exe/ | cat
-```
-
----
-
-## Database
-
-- Default is SQLite; schema is created automatically on first run:
-  - `users`, `bots`, `destinations`, `subscriptions`
-- For a brand-new setup, you do not need migrations.
-  If you later switch databases (PostgreSQL, MySQL), update `DB_URL` accordingly.
-
----
-
-## Time zone
-
-All timestamps are timezone-aware using the configured `TIMEZONE`
-environment variable (defaults to Asia/Jakarta / UTC+7) via `zoneinfo`.
-When displaying times, `.isoformat()` includes the appropriate offset.
-
----
-
-## Security considerations
-
-- Protect your database: bot tokens are stored in `bots.token`.
-- Use HTTPS everywhere. Do not log raw tokens or secrets.
-- The Telegram webhook path includes the bot token; treat logs carefully.
-- Use strong, unique webhook secrets for GitHub.
-- Restrict admin access via `ADMIN_USER_IDS`.
-
----
-
-## Group Topics and Channels
-
-- Group Topics: use `/adddest here` from within the topic thread or store `<chat_id>:<topic_id>`. The app sets `message_thread_id` when sending.
-- Channels: your bot must be added as administrator. Use `/checkdest <dest_id>` to verify the bot’s status in that chat.
-
----
-
-## Troubleshooting
-
-- No messages arriving from GitHub:
-  - Check the webhook delivery log in GitHub (redeliver if needed).
-  - Ensure the Secret matches.
-  - Confirm your server is reachable over HTTPS.
-- Telegram webhook not firing:
-  - Verify the webhook URL is set for the correct bot.
-  - Ensure your server URL matches `PUBLIC_BASE_URL`.
-  - Talk to the bot (`/start`) at least once to create your user.
-- MarkdownV2 formatting issues:
-  - The app escapes special characters; if you paste exotic text, verify the output.
-
----
-
-## Extending
-
-- Add more GitHub events in `pretty_github_event`.
-- Add rate limiting, auditing, or message templates per subscription.
-- Replace per-user multi-bot with a single master bot by removing `bots` and sourcing a single token from environment.
-
----
+This repository now ships a JavaScript/TypeScript stack built with **Next.js 14** (App Router) for the admin UI and an **Express 4** backend for webhook handling, Telegram delivery, and persistence in SQLite. The original FastAPI implementation is kept under `app/` for reference while the rewrite is stabilised.
 
 ## Project layout
 
-- `app.py` – FastAPI application, models, endpoints, and Telegram/GitHub helpers.
-- `.env.example` – sample environment file (create your own `.env`).
-
----
-
-## Example `.env.example`
-
-```ini
-DB_URL=sqlite:///./github_tg.sqlite3
-PUBLIC_BASE_URL=https://yourdomain.exe
-ADMIN_USER_IDS=123456789
+```
+backend/   Express API, GitHub + Telegram webhook handlers, SQLite persistence
+frontend/  Next.js dashboard, Tailwind CSS, shadcn/ui components
+app/       Legacy FastAPI application (to be removed once migration completes)
 ```
 
----
+## Backend (Express)
 
-## License
+### Setup
 
-This project is licensed under the [MIT License](https://github.com/najahiiii/gh-weebhooks/blob/master/LICENSE).
+```bash
+cd backend
+npm install
+cp ../.env.example ../.env    # reuse existing environment variables
+npm run dev                    # starts on http://localhost:4000
+```
+
+Core environment variables (same keys as legacy app):
+
+| Name                    | Default                         | Purpose                                                   |
+| ----------------------- | ------------------------------- | --------------------------------------------------------- |
+| `DB_URL`                | `sqlite:///./github_tg.sqlite3` | SQLite DSN (Prisma-style paths are resolved automatically) |
+| `PUBLIC_BASE_URL`       | `http://localhost:4000`         | Public URL used when registering Telegram webhooks        |
+| `ADMIN_USER_IDS`        | `""`                           | Comma separated Telegram user IDs with admin privileges   |
+| `LOGIN_BOT_TOKEN`       | _empty_                         | Telegram bot token used for the web login flow            |
+| `LOGIN_BOT_USERNAME`    | _empty_                         | Telegram bot username (without `@`) for the login widget  |
+| `SESSION_COOKIE_NAME`   | `app_session`                   | Cookie that stores admin session tokens                   |
+| `SESSION_DURATION_HOURS`| `24`                            | Session lifetime                                          |
+| `TIMEZONE`              | `Asia/Jakarta`                  | Timezone for persisted timestamps                         |
+
+### Features
+
+- RESTful admin endpoints under `/api/*` for bots, destinations, subscriptions, and sessions
+- Telegram login verification (`POST /api/auth/telegram/verify`) shares logic with the legacy version
+- GitHub webhook endpoint `/wh/:hookId` validates `X-Hub-Signature-256` and records deliveries in `webhook_event_logs`
+- Telegram webhook sink `/tg/:botId/:token` keeps Bot API hooks alive while the service remains outbound-only
+
+## Frontend (Next.js)
+
+### Setup
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local  # create if needed; see variables below
+npm run dev                 # starts on http://localhost:3000
+```
+
+Add the following environment variables in `frontend/.env.local`:
+
+```
+NEXT_PUBLIC_API_BASE=http://localhost:4000
+NEXT_PUBLIC_TELEGRAM_LOGIN_BOT=your_bot_username_without_at
+```
+
+### Screens
+
+- `/login` – Telegram Login Widget integrated with the backend verification endpoint
+- `/dashboard` – Client-side dashboard for managing bots, destinations, and subscriptions (consumes the Express API)
+
+Tailwind CSS powers styling and shadcn/ui-inspired primitives (see `src/components/ui`).
+
+## Running both services
+
+1. Start the backend (`npm run dev` inside `backend/`)
+2. Start the frontend (`npm run dev` inside `frontend/`)
+3. Visit `http://localhost:3000/login`
+
+## Next steps
+
+- Port advanced GitHub event summarisation (currently simplified) from the Python service
+- Harden auth flows (rate limiting, CSRF guards) and add role-based admin tooling
+- Migrate remaining templates/features from the legacy FastAPI app before removing `app/`
+
+## Legacy FastAPI code
+
+The original Python implementation remains under `app/` together with its routers, models, and templates. Keep it until the new stack reaches feature parity.

@@ -203,4 +203,4 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Project related files
-github_tg.sqlite3
+github_tg.sqlite3*
