@@ -204,3 +204,7 @@ __marimo__/
 
 # Project related files
 github_tg.sqlite3*
+
+# Personal
+frontend/.env.production
+ecosystem.config.cjs
