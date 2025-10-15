@@ -194,11 +194,6 @@ export default function LandingPage() {
                   <AlertDescription>{feedbackMessage}</AlertDescription>
                 </Alert>
               )}
-              {!isAuthenticated && (
-                <p className="text-xs text-slate-500">
-                  We use Telegram login. Configure the BotFather domain to match this frontend before signing in.
-                </p>
-              )}
             </div>
 
             <Card className="border-slate-800/60 bg-slate-900/70 shadow-xl shadow-sky-900/20">
