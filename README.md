@@ -1,6 +1,6 @@
 # GitHub → Telegram Notifier (Next.js + Express rewrite)
 
-This repository now ships a JavaScript/TypeScript stack built with **Next.js 14** (App Router) for the admin UI and an **Express 4** backend for webhook handling, Telegram delivery, and persistence in SQLite. The original FastAPI implementation is kept under `app/` for reference while the rewrite is stabilised.
+This repository now ships a JavaScript/TypeScript stack built with **Next.js 14** (App Router) for the admin UI and all API/webhook handling (Express code is kept only as legacy helpers). The original FastAPI implementation is kept under `app/` for reference while the rewrite is stabilised.
 
 ## Project layout
 
@@ -17,22 +17,22 @@ app/       Legacy FastAPI application (to be removed once migration completes)
 ```bash
 cd backend
 npm install
-cp ../.env.example ../.env    # reuse existing environment variables
+cp @/.env.example @/.env    # reuse existing environment variables
 npm run dev                    # starts on http://localhost:4000
 ```
 
 Core environment variables (same keys as legacy app):
 
-| Name                    | Default                         | Purpose                                                   |
-| ----------------------- | ------------------------------- | --------------------------------------------------------- |
-| `DB_URL`                | `sqlite:///./github_tg.sqlite3` | SQLite DSN (Prisma-style paths are resolved automatically) |
-| `PUBLIC_BASE_URL`       | `http://localhost:4000`         | Public URL used when registering Telegram webhooks        |
-| `ADMIN_USER_IDS`        | `""`                           | Comma separated Telegram user IDs with admin privileges   |
-| `LOGIN_BOT_TOKEN`       | _empty_                         | Telegram bot token used for the web login flow            |
-| `LOGIN_BOT_USERNAME`    | _empty_                         | Telegram bot username (without `@`) for the login widget  |
-| `SESSION_COOKIE_NAME`   | `app_session`                   | Cookie that stores admin session tokens                   |
-| `SESSION_DURATION_HOURS`| `24`                            | Session lifetime                                          |
-| `TIMEZONE`              | `Asia/Jakarta`                  | Timezone for persisted timestamps                         |
+| Name                     | Default                         | Purpose                                                    |
+| ------------------------ | ------------------------------- | ---------------------------------------------------------- |
+| `DB_URL`                 | `sqlite:///./github_tg.sqlite3` | SQLite DSN (Prisma-style paths are resolved automatically) |
+| `PUBLIC_BASE_URL`        | `http://localhost:4000`         | Public URL used when registering Telegram webhooks         |
+| `ADMIN_USER_IDS`         | `""`                            | Comma separated Telegram user IDs with admin privileges    |
+| `LOGIN_BOT_TOKEN`        | _empty_                         | Telegram bot token used for the web login flow             |
+| `LOGIN_BOT_USERNAME`     | _empty_                         | Telegram bot username (without `@`) for the login widget   |
+| `SESSION_COOKIE_NAME`    | `app_session`                   | Cookie that stores admin session tokens                    |
+| `SESSION_DURATION_HOURS` | `24`                            | Session lifetime                                           |
+| `TIMEZONE`               | `Asia/Jakarta`                  | Timezone for persisted timestamps                          |
 
 ### Features
 
@@ -64,7 +64,7 @@ NEXT_PUBLIC_TELEGRAM_LOGIN_BOT=your_bot_username_without_at
 - `/login` – Telegram Login Widget integrated with the backend verification endpoint
 - `/dashboard` – Client-side dashboard for managing bots, destinations, and subscriptions (consumes the Express API)
 
-Tailwind CSS powers styling and shadcn/ui-inspired primitives (see `src/components/ui`).
+Tailwind CSS powers styling and shadcn/ui-inspired primitives (see `components/ui`).
 
 ## Running both services
 
