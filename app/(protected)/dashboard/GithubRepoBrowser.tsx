@@ -144,7 +144,7 @@ export function GithubRepoBrowser({
           webhooks
         </Button>
         <Button
-          variant="ghost"
+          variant="destructive"
           size="sm"
           onClick={() => void onDisconnectGithub()}
           disabled={githubDisconnecting}>

@@ -22,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "components/ui/card";
+import { FolderGit } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import { GithubRepoBrowser } from "./GithubRepoBrowser";
 
@@ -739,7 +740,8 @@ export function SubscriptionsPanel({
                     className="rounded-xl border border-slate-800/70 bg-slate-950/50 p-4 text-sm text-slate-200">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="space-y-1">
-                        <p className="text-base font-semibold text-slate-100">
+                        <p className="flex items-center gap-2 text-base font-semibold text-slate-100">
+                          <FolderGit className="h-4 w-4 text-slate-400" />
                           {sub.repo}
                         </p>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
