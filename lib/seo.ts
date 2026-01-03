@@ -23,7 +23,7 @@ export const siteConfig = {
   authors: [{ name: "Najahi" }],
   creator: "Najahi",
   publisher: "GitHub → Telegram",
-  openGraphImage: "/og-image.png",
+  openGraphImage: "/images/og-image.png",
   locale: "en_US",
   siteUrl
 };
@@ -36,4 +36,3 @@ export function getCanonicalUrl(pathname: string): string {
   const normalizedPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
   return new URL(normalizedPath, siteUrl).toString();
 }
-

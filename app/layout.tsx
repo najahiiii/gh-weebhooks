@@ -38,6 +38,16 @@ export const metadata: Metadata = {
       },
     ],
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/images/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/images/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/images/apple-touch-icon.png",
+  },
+  manifest: "/manifest.webmanifest",
   twitter: {
     card: "summary_large_image",
     title: siteConfig.tagline,
