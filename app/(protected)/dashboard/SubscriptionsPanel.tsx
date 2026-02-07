@@ -1,6 +1,24 @@
 "use client";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Copyable } from "@/components/ui/copyable";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,16 +30,6 @@ import {
   type ApiGithubWebhook,
   type ApiSubscription,
 } from "@/lib/api";
-import { Alert, AlertDescription } from "components/ui/alert";
-import { Badge } from "components/ui/badge";
-import { Button } from "components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "components/ui/card";
 import { FolderGit } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import { GithubRepoBrowser } from "./GithubRepoBrowser";
@@ -71,7 +79,7 @@ type SubscriptionsPanelProps = {
   notifyError: (message: string) => void;
   handleGithubIntegrationFeedback: (
     integration: ApiGithubIntegration,
-    context: string
+    context: string,
   ) => void;
   busyAction: string | null;
   setBusyAction: React.Dispatch<React.SetStateAction<string | null>>;
@@ -204,14 +212,17 @@ export function SubscriptionsPanel({
       events: "*",
       botId: "",
       destinationId: "",
-    }
+    },
   );
   const [editingSubscriptionId, setEditingSubscriptionId] = useState<
     number | null
   >(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ApiSubscription | null>(
+    null,
+  );
   const [latestWebhook, setLatestWebhook] = useState<WebhookHelper | null>(
-    null
+    null,
   );
   const eventsScrollRef = useRef(0);
 
@@ -309,7 +320,7 @@ export function SubscriptionsPanel({
     }
     if (!createSelectedEvents.includes("*")) {
       const filteredCreate = createSelectedEvents.filter((event) =>
-        eventsOptions.includes(event)
+        eventsOptions.includes(event),
       );
       if (filteredCreate.length !== createSelectedEvents.length) {
         updateCreateEventsSelection(filteredCreate);
@@ -317,7 +328,7 @@ export function SubscriptionsPanel({
     }
     if (!editSelectedEvents.includes("*")) {
       const filteredEdit = editSelectedEvents.filter((event) =>
-        eventsOptions.includes(event)
+        eventsOptions.includes(event),
       );
       if (filteredEdit.length !== editSelectedEvents.length) {
         updateEditEventsSelection(filteredEdit);
@@ -372,11 +383,11 @@ export function SubscriptionsPanel({
       notifySuccess("Subscription created.");
       handleGithubIntegrationFeedback(
         response.githubIntegration,
-        "GitHub webhook creation"
+        "GitHub webhook creation",
       );
     } catch (err) {
       notifyError(
-        err instanceof Error ? err.message : "Failed to add subscription"
+        err instanceof Error ? err.message : "Failed to add subscription",
       );
     } finally {
       setBusyAction(null);
@@ -435,27 +446,27 @@ export function SubscriptionsPanel({
           prev.map((sub) =>
             sub.id === editingSubscriptionId
               ? (response.subscription as ApiSubscription)
-              : sub
-          )
+              : sub,
+          ),
         );
       } else {
         setSubscriptions((prev) =>
           prev.map((sub) =>
             sub.id === editingSubscriptionId
               ? { ...sub, repo, eventsCsv: eventsValue, botId, destinationId }
-              : sub
-          )
+              : sub,
+          ),
         );
       }
       cancelEditSubscription();
       notifySuccess("Subscription updated.");
       handleGithubIntegrationFeedback(
         response.githubIntegration,
-        "GitHub webhook update"
+        "GitHub webhook update",
       );
     } catch (err) {
       notifyError(
-        err instanceof Error ? err.message : "Failed to update subscription"
+        err instanceof Error ? err.message : "Failed to update subscription",
       );
     } finally {
       setBusyAction(null);
@@ -470,14 +481,15 @@ export function SubscriptionsPanel({
       notifySuccess("Subscription removed.");
       handleGithubIntegrationFeedback(
         response.githubIntegration,
-        "GitHub webhook removal"
+        "GitHub webhook removal",
       );
     } catch (err) {
       notifyError(
-        err instanceof Error ? err.message : "Failed to remove subscription"
+        err instanceof Error ? err.message : "Failed to remove subscription",
       );
     } finally {
       setBusyAction(null);
+      setPendingDelete(null);
     }
   };
 
@@ -704,7 +716,7 @@ export function SubscriptionsPanel({
                     notifyError(
                       err instanceof Error
                         ? err.message
-                        : "Failed to refresh subscriptions"
+                        : "Failed to refresh subscriptions",
                     );
                   })
                   .finally(() => setBusyAction(null));
@@ -770,14 +782,14 @@ export function SubscriptionsPanel({
                           size="sm"
                           onClick={() => handleOpenEditSubscription(sub)}
                           disabled={busyAction?.startsWith(
-                            "update-subscription-"
+                            "update-subscription-",
                           )}>
                           Edit
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => void handleRemoveSubscription(sub.id)}
+                          onClick={() => setPendingDelete(sub)}
                           disabled={
                             busyAction === `delete-subscription-${sub.id}`
                           }>
@@ -823,25 +835,20 @@ export function SubscriptionsPanel({
           )}
         </div>
 
-        {isEditDialogOpen ? (
-          <div className="space-y-4 rounded-2xl border border-slate-800/70 bg-slate-900/70 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-slate-100">
-                  Edit subscription
-                </p>
-                <p className="text-xs text-slate-500">
-                  {editSubscription.repo || "owner/repo"}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={cancelEditSubscription}
-                disabled={isSavingEdit}>
-                Close
-              </Button>
-            </div>
+        <Dialog
+          open={isEditDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              cancelEditSubscription();
+            }
+          }}>
+          <DialogContent className="max-w-4xl border border-slate-800/70 bg-slate-900/90 text-slate-100">
+            <DialogHeader className="space-y-1">
+              <DialogTitle>Edit subscription</DialogTitle>
+              <DialogDescription className="text-slate-400">
+                {editSubscription.repo || "owner/repo"}
+              </DialogDescription>
+            </DialogHeader>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="edit-subscription-repo">Repository</Label>
@@ -938,7 +945,7 @@ export function SubscriptionsPanel({
                 </select>
               </div>
             </div>
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
+            <DialogFooter className="pt-2">
               <Button
                 variant="secondary"
                 size="sm"
@@ -957,9 +964,53 @@ export function SubscriptionsPanel({
                 }>
                 {isSavingEdit ? "Saving…" : "Save changes"}
               </Button>
-            </div>
-          </div>
-        ) : null}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={pendingDelete !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingDelete(null);
+            }
+          }}>
+          <DialogContent className="max-w-md border border-slate-800/70 bg-slate-900/90 text-slate-100">
+            <DialogHeader>
+              <DialogTitle>
+                Hapus subs ({pendingDelete?.repo ?? "owner/repo"})?
+              </DialogTitle>
+              <DialogDescription className="text-slate-400">
+                Aksi ini akan menghapus subscription dan webhook terkait.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="secondary"
+                onClick={() => setPendingDelete(null)}
+                disabled={
+                  pendingDelete !== null &&
+                  busyAction === `delete-subscription-${pendingDelete.id}`
+                }>
+                Tidak
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  pendingDelete && handleRemoveSubscription(pendingDelete.id)
+                }
+                disabled={
+                  !pendingDelete ||
+                  busyAction === `delete-subscription-${pendingDelete.id}`
+                }>
+                {pendingDelete &&
+                busyAction === `delete-subscription-${pendingDelete.id}`
+                  ? "Removing…"
+                  : "Ya"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
