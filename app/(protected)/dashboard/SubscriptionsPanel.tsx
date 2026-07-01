@@ -23,8 +23,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   api,
-  type ApiBot,
-  type ApiDestination,
   type ApiGithubIntegration,
   type ApiGithubRepo,
   type ApiGithubWebhook,
@@ -65,8 +63,6 @@ type GithubProps = {
 type SubscriptionsPanelProps = {
   subscriptions: ApiSubscription[];
   setSubscriptions: React.Dispatch<React.SetStateAction<ApiSubscription[]>>;
-  bots: ApiBot[];
-  destinations: ApiDestination[];
   botOptions: Array<{ value: string; label: string }>;
   destinationOptions: Array<{
     value: string;
@@ -179,8 +175,6 @@ type WebhookHelper = {
 export function SubscriptionsPanel({
   subscriptions,
   setSubscriptions,
-  bots,
-  destinations,
   botOptions,
   destinationOptions,
   botLabelMap,

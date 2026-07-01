@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "components/ui/card";
-import { getChatLookupCandidateKey } from "./useChatLookup";
+import { getChatLookupCandidateKey, type ChatLookupState } from "./useChatLookup";
 
 const selectClass =
   "h-10 w-full rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 text-sm text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
@@ -26,7 +26,7 @@ type ChatLookupProps = {
   chatLookupCandidates: ApiChatLookupCandidate[];
   chatLookupSelectionKey: string | null;
   setChatLookupSelectionKey: (value: string | null) => void;
-  chatLookupState: any;
+  chatLookupState: ChatLookupState;
   chatLookupLoading: boolean;
   chatLookupStopping: boolean;
   handleStartChatLookup: () => Promise<void>;

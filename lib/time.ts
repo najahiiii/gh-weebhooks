@@ -15,7 +15,7 @@ export function nowWithTimezone(): Date {
   const tz = config.timezone;
   try {
     return new Date(now.toLocaleString("en-US", { timeZone: tz }));
-  } catch (err) {
+  } catch {
     return now;
   }
 }

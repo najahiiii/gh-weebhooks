@@ -61,6 +61,7 @@ export function useChatLookup(options?: ChatLookupOptions) {
   const chatLookupDetectedRef = useRef(false);
   const prevChatLookupBotId = useRef<string>("");
   const reconnectAttempts = useRef(0);
+  const connectEventStreamRef = useRef<(botId: number) => void>(() => undefined);
 
   const stopEventStream = useCallback(() => {
     if (chatLookupEventSource.current) {
@@ -200,13 +201,17 @@ export function useChatLookup(options?: ChatLookupOptions) {
             !chatLookupEventSource.current &&
             chatLookupBotId === String(botId)
           ) {
-            connectEventStream(botId);
+            connectEventStreamRef.current(botId);
           }
         }, delay);
       };
     },
     [chatLookupBotId, chatLookupState, stopEventStream, syncChatLookupSelection]
   );
+
+  useEffect(() => {
+    connectEventStreamRef.current = connectEventStream;
+  }, [connectEventStream]);
 
   const handleStartChatLookup = useCallback(async () => {
     if (!chatLookupBotId) {

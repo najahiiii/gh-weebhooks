@@ -58,7 +58,7 @@ export async function setTelegramWebhook(
   try {
     const response = await axios.post(url, payload, { timeout: 10000 });
     return Boolean(response.data?.ok);
-  } catch (error) {
+  } catch {
     return false;
   }
 }

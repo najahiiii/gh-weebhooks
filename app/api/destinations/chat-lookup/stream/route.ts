@@ -34,13 +34,14 @@ export async function GET(request: NextRequest) {
   }
 
   // Ensure lookup session exists so client immediately listens.
-  const state = startChatLookup(user.id, bot.id, bot.botId);
+  startChatLookup(user.id, bot.id, bot.botId);
 
+  let closeStream: (() => void) | null = null;
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
       let closed = false;
-      const send = (event: any) => {
+      const send = (event: unknown) => {
         if (closed) return;
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
         }
       }, 20000);
 
-      const closeStream = () => {
+      const close = () => {
         if (closed) return;
         closed = true;
         clearInterval(keepAlive);
@@ -77,8 +78,10 @@ export async function GET(request: NextRequest) {
       };
 
       // If the consumer cancels the stream, ensure cleanup.
-      const abort = () => closeStream();
-      (controller as any).signal?.addEventListener?.("abort", abort);
+      closeStream = close;
+    },
+    cancel() {
+      closeStream?.();
     }
   });
 

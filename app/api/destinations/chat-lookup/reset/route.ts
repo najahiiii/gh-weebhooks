@@ -11,8 +11,11 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return unauthorized();
   }
-  const body = await request.json().catch(() => ({}));
-  const botIdRaw = (body as any)?.botId ?? request.nextUrl.searchParams.get("botId");
+  const body = await request.json().catch((): unknown => ({}));
+  const botIdRaw =
+    body && typeof body === "object" && "botId" in body
+      ? body.botId
+      : request.nextUrl.searchParams.get("botId");
   const botId = Number.parseInt(String(botIdRaw || ""), 10);
   if (Number.isNaN(botId)) {
     return NextResponse.json({ error: "Invalid bot id" }, { status: 400 });

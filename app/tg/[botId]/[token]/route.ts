@@ -10,15 +10,51 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type TelegramChat = {
+  id?: number | string;
+  type?: string;
+  title?: string;
+  username?: string;
+  is_forum?: boolean;
+  message_thread_id?: number;
+};
+
+type TelegramForwardOrigin = {
+  chat?: TelegramChat;
+  message_thread_id?: number;
+};
+
+type TelegramMessage = {
+  from?: { id?: number | string };
+  chat?: TelegramChat;
+  sender_chat?: TelegramChat;
+  forward_from_chat?: TelegramChat;
+  forward_origin?: TelegramForwardOrigin;
+  message_thread_id?: number;
+  is_topic_message?: boolean;
+  via_bot?: { username?: string };
+  reply_to_message?: TelegramMessage & {
+    forum_topic_created?: { topic_id?: number };
+    forum_topic_closed?: { topic_id?: number };
+    forum_topic_reopened?: { topic_id?: number };
+  };
+};
+
+type TelegramUpdate = {
+  message?: TelegramMessage;
+  channel_post?: TelegramMessage;
+  edited_channel_post?: TelegramMessage;
+};
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ botId: string; token: string }> }) {
   const { botId: botTelegramId } = await params;
   if (!botTelegramId) {
     return new NextResponse("botId required", { status: 400 });
   }
 
-  let update: any = null;
+  let update: TelegramUpdate | null = null;
   try {
-    update = await request.json();
+    update = (await request.json()) as TelegramUpdate;
   } catch (err) {
     console.error("[telegram-webhook] failed to parse update", err);
     return new NextResponse("ok");
@@ -67,7 +103,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   return new NextResponse("ok");
 }
 
-function handleMessageUpdate(botTelegramId: string, message: any) {
+function handleMessageUpdate(botTelegramId: string, message: TelegramMessage) {
   const bot = getBotByTelegramId(botTelegramId);
   if (!bot) {
     console.warn("[chat-lookup] bot not found for webhook update", { botTelegramId });
@@ -105,7 +141,7 @@ function handleMessageUpdate(botTelegramId: string, message: any) {
   const forwardOrigin = message.forward_origin;
   const originChat = message.chat;
 
-  let sourceChat: any = null;
+  let sourceChat: TelegramChat | null = null;
   let via: "forward" | "message" | null = null;
 
   if (forwardChat && typeof forwardChat === "object") {
@@ -135,8 +171,8 @@ function handleMessageUpdate(botTelegramId: string, message: any) {
 
   let topicId: number | null = null;
   const forwardedTopicId =
-    (forwardOrigin && typeof forwardOrigin === "object" && typeof (forwardOrigin as any).message_thread_id === "number"
-      ? ((forwardOrigin as any).message_thread_id as number)
+    (forwardOrigin && typeof forwardOrigin === "object" && typeof forwardOrigin.message_thread_id === "number"
+      ? forwardOrigin.message_thread_id
       : null);
   const candidates: Array<unknown> = [
     message.message_thread_id,

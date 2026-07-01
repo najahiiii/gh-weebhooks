@@ -2,9 +2,13 @@ import cookieParser from "cookie-parser";
 import { NextFunction, Request, Response } from "express";
 import { config } from "lib/config";
 import { getSession } from "lib/services/sessions";
-import { getUserBySessionToken } from "lib/services/users";
+import { getUserBySessionToken, type User } from "lib/services/users";
 
 export const sessionMiddleware = [cookieParser(), attachUser];
+
+type RequestWithUser = Request & {
+  user?: User;
+};
 
 function attachUser(req: Request, res: Response, next: NextFunction) {
   const token = req.cookies?.[config.sessionCookieName];
@@ -21,13 +25,13 @@ function attachUser(req: Request, res: Response, next: NextFunction) {
   }
   const user = getUserBySessionToken(token);
   if (user) {
-    (req as any).user = user;
+    (req as RequestWithUser).user = user;
   }
   return next();
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const user = (req as any).user;
+  const user = (req as RequestWithUser).user;
   if (!user) {
     return res.status(401).json({ error: "Unauthorized" });
   }

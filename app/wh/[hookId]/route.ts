@@ -64,7 +64,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   let payload: unknown;
   try {
     payload = JSON.parse(bodyBuffer.toString("utf-8"));
-  } catch (error) {
+  } catch {
     createLog({
       subscriptionId: subscription.id,
       hookId: subscription.hookId,

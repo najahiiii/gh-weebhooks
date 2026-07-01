@@ -19,9 +19,15 @@ type LookupState = {
   results: LookupResult[];
 };
 
+export type LookupEvent =
+  | { type: "started"; expiresAt: number }
+  | { type: "detected"; chat: LookupResult }
+  | { type: "cleared" }
+  | { type: "expired" };
+
 const LOOKUP_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
 const lookupStore = new Map<LookupKey, LookupState>();
-const listeners = new Map<LookupKey, Set<(payload: any) => void>>();
+const listeners = new Map<LookupKey, Set<(payload: LookupEvent) => void>>();
 
 function makeKey(userId: number, botTelegramId: string): LookupKey {
   return `${userId}:${botTelegramId}`;
@@ -124,10 +130,10 @@ export function hasPendingLookupForBot(botTelegramId: string): boolean {
 export function addLookupListener(
   userId: number,
   botTelegramId: string,
-  listener: (payload: any) => void
+  listener: (payload: LookupEvent) => void
 ): () => void {
   const key = makeKey(userId, botTelegramId);
-  const set = listeners.get(key) ?? new Set<(payload: any) => void>();
+  const set = listeners.get(key) ?? new Set<(payload: LookupEvent) => void>();
   set.add(listener);
   listeners.set(key, set);
   return () => {
@@ -140,7 +146,7 @@ export function addLookupListener(
   };
 }
 
-function emitToListeners(userId: number, botTelegramId: string, payload: any) {
+function emitToListeners(userId: number, botTelegramId: string, payload: LookupEvent) {
   const key = makeKey(userId, botTelegramId);
   const set = listeners.get(key);
   if (!set || set.size === 0) return;

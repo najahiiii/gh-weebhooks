@@ -1624,20 +1624,12 @@ function summarizeMetaEvent(payload: Payload): string {
   return summarizeMeta(payload);
 }
 
-function summarizeOrg(payload: Payload): string {
-  return summarizeOrganization(payload);
-}
-
 function summarizeSponsorshipEvent(payload: Payload): string {
   return summarizeSponsorship(payload);
 }
 
 function summarizeWatchDefault(payload: Payload, event: string): string {
   return summarizeWatch(payload, event);
-}
-
-function summarizeWorkflow(payload: Payload): string {
-  return summarizeWorkflowRun(payload);
 }
 
 const EVENTS_METADATA: Record<string, { handler?: Handler; label?: string }> = {
@@ -1751,7 +1743,7 @@ export function summarizeGithubEvent(event: string, payload: unknown): string {
   if (handler) {
     try {
       return handler(mappedPayload, eventKey);
-    } catch (error) {
+    } catch {
       return fallbackSummary(eventKey, mappedPayload);
     }
   }

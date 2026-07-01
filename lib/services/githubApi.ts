@@ -23,6 +23,14 @@ type GithubRequestOptions = {
   headers?: Record<string, string>;
 };
 
+function getStringField(payload: unknown, field: string): string | undefined {
+  if (!payload || typeof payload !== "object" || !(field in payload)) {
+    return undefined;
+  }
+  const value = (payload as Record<string, unknown>)[field];
+  return typeof value === "string" ? value : undefined;
+}
+
 async function githubRequest<T>(path: string, options: GithubRequestOptions = {}): Promise<T> {
   const url = path.startsWith("http") ? path : `${API_ROOT}${path}`;
   const headers: Record<string, string> = {
@@ -51,7 +59,7 @@ async function githubRequest<T>(path: string, options: GithubRequestOptions = {}
   });
 
   const text = await response.text();
-  let payload: any;
+  let payload: unknown;
   try {
     payload = text ? JSON.parse(text) : null;
   } catch {
@@ -59,8 +67,8 @@ async function githubRequest<T>(path: string, options: GithubRequestOptions = {}
   }
 
   if (!response.ok) {
-    const message = payload?.message || `GitHub API request failed with status ${response.status}`;
-    const documentationUrl = payload?.documentation_url;
+    const message = getStringField(payload, "message") || `GitHub API request failed with status ${response.status}`;
+    const documentationUrl = getStringField(payload, "documentation_url");
     throw new GithubApiError(message, response.status, payload, documentationUrl);
   }
 
@@ -140,21 +148,21 @@ export async function fetchRepositories(token: string, params?: { perPage?: numb
     }
   });
   const text = await response.text();
-  let payload: any;
+  let payload: unknown;
   try {
     payload = text ? JSON.parse(text) : null;
   } catch {
     payload = text;
   }
   if (!response.ok) {
-    const message = payload?.message || `GitHub API request failed with status ${response.status}`;
-    const documentationUrl = payload?.documentation_url;
+    const message = getStringField(payload, "message") || `GitHub API request failed with status ${response.status}`;
+    const documentationUrl = getStringField(payload, "documentation_url");
     throw new GithubApiError(message, response.status, payload, documentationUrl);
   }
   const link = response.headers.get("link");
   const hasNextPage = Boolean(link && link.includes('rel="next"'));
   return {
-    repositories: (payload as GithubRepository[]) || [],
+    repositories: Array.isArray(payload) ? (payload as GithubRepository[]) : [],
     hasNextPage
   };
 }

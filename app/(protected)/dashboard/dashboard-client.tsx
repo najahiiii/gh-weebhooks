@@ -43,19 +43,6 @@ type BotDetails = {
   webhookInfo: ApiWebhookInfo;
 };
 
-type WebhookHelper = {
-  repo: string;
-  payloadUrl: string;
-  secret: string;
-  events: string;
-  contentType: string;
-  botLabel: string;
-  destinationLabel: string;
-};
-
-const selectClass =
-  "h-10 w-full rounded-xl border border-slate-800/60 bg-slate-950/60 px-3 text-sm text-slate-100 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
 type DashboardMetric = {
   label: string;
   value: number;
@@ -104,7 +91,6 @@ export default function DashboardPage() {
   });
   const [subscriptions, setSubscriptions] = useState<ApiSubscription[]>([]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
 
   const notifyError = useCallback((message: string) => {
     toast.error(message);
@@ -160,10 +146,6 @@ export default function DashboardPage() {
     };
     void load();
   }, [router, notifyError]);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const stats = useMemo<DashboardMetric[]>(
     () => [
@@ -829,8 +811,6 @@ export default function DashboardPage() {
         <SubscriptionsPanel
           subscriptions={subscriptions}
           setSubscriptions={setSubscriptions}
-          bots={bots}
-          destinations={destinations}
           botOptions={botOptions}
           destinationOptions={destinationOptions}
           botLabelMap={botLabelMap}
